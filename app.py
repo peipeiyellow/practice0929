@@ -1,10 +1,10 @@
-from flask import Flask, render_template
+from flask import Flask
 
 app = Flask(__name__)
 
 @app.route("/")
 def hello_world():
-    return render_template("index.html")
+    return "Hello World<br>歡迎來到python製作的一頁式網站"
 
 if __name__ == "__main__":
     # debug=True 可在開發階段啟用即時重載與除錯功能
