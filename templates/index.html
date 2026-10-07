@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello World - Flask 一頁式網站</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            padding: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #718096;
+            margin-bottom: 24px;
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: #ebf4ff;
+            color: #3182ce;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #667eea;
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .info-box {
+            margin-top: 28px;
+            padding: 16px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e0;
+            font-size: 0.85rem;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        #clickCount {
+            font-weight: bold;
+            color: #e53e3e;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="badge">Python Flask 應用</div>
+        <h1>Hello, World!</h1>
+        <p class="subtitle">歡迎來到您的第一個 Flask 一頁式網站！</p>
+        
+        <button class="btn" onclick="handleClick()">點擊互動體驗</button>
+        
+        <div class="info-box">
+            <p>伺服器：<strong>Flask (Python)</strong></p>
+            <p>互動次數：<span id="clickCount">0</span> 次</p>
+            <p id="msg"></p>
+        </div>
+    </div>
+
+    <script>
+        let count = 0;
+        const messages = [
+            "太棒了！網站運作非常順暢！",
+            "Flask 輕量且功能強大！",
+            "一頁式網站已成功載入！",
+            "繼續探索 Python Web 開發的樂趣吧！"
+        ];
+
+        function handleClick() {
+            count++;
+            document.getElementById('clickCount').textContent = count;
+            const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+            document.getElementById('msg').textContent = randomMsg;
+        }
+    </script>
+</body>
+</html>
