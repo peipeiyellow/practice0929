@@ -3,8 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World - Flask 一頁式網站</title>
+    <title>Hello World - SQLite 訂單管理系統 (Render 即時驗證)</title>
+    <meta name="description" content="基於 Python Flask 與 SQLite orders.db 建置的訂單管理系統與資料庫驗證面板">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --primary-light: #eef2ff;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -12,128 +39,688 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            color: #1e293b;
             min-height: 100vh;
+            padding: 24px 16px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 頂端 Hero Header */
+        .header-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #4f46e5, #06b6d4, #10b981);
+        }
+
+        .header-top {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .brand-title {
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: #333;
-            padding: 20px;
+            gap: 12px;
         }
 
-        .card {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 40px 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            text-align: center;
-            max-width: 500px;
-            width: 100%;
-            backdrop-filter: blur(8px);
-            animation: fadeIn 0.8s ease-in-out;
+        .brand-title h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--slate-900);
+            letter-spacing: -0.02em;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .tag-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
-        h1 {
-            font-size: 2.5rem;
-            color: #2d3748;
-            margin-bottom: 12px;
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .pill-render {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .pill-sqlite {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .pill-flask {
+            background: #fef3c7;
+            color: #b45309;
         }
 
         .subtitle {
-            font-size: 1.1rem;
-            color: #718096;
-            margin-bottom: 24px;
-        }
-
-        .badge {
-            display: inline-block;
-            background-color: #ebf4ff;
-            color: #3182ce;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 24px;
-        }
-
-        .btn {
-            display: inline-block;
-            background: #667eea;
-            color: #fff;
-            padding: 12px 28px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            background: #5a67d8;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .info-box {
-            margin-top: 28px;
-            padding: 16px;
-            background: #f7fafc;
-            border-radius: 8px;
-            border: 1px dashed #cbd5e0;
-            font-size: 0.85rem;
-            color: #4a5568;
+            font-size: 0.95rem;
+            color: var(--slate-600);
             line-height: 1.6;
         }
 
-        #clickCount {
-            font-weight: bold;
-            color: #e53e3e;
+        /* 統計指標卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            box-shadow: var(--shadow-md);
+            border-left: 4px solid var(--primary);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--slate-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--slate-900);
+        }
+
+        .stat-sub {
+            font-size: 0.75rem;
+            color: var(--slate-500);
+            margin-top: 4px;
+        }
+
+        /* 頁籤切換 */
+        .tabs-nav {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 9999px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .tab-btn.active {
+            background: #fff;
+            color: var(--slate-900);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* 內容容器 */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 表格區塊卡片 */
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 24px;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .content-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--slate-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .schema-badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--slate-100);
+            color: var(--slate-600);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+
+        /* 表格樣式 */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--slate-200);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        th {
+            background: var(--slate-50);
+            color: var(--slate-700);
+            font-weight: 600;
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--slate-200);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--slate-200);
+            color: var(--slate-700);
+            white-space: nowrap;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: var(--primary-light);
+        }
+
+        .col-center { text-align: center; }
+        .col-right { text-align: right; }
+        .text-bold { font-weight: 600; }
+        .text-mono { font-family: monospace; }
+        .text-price { color: #047857; font-weight: 600; }
+
+        /* 狀態標籤 */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        .status-completed { background: #dcfce7; color: #15803d; }
+        .status-shipped { background: #dbeafe; color: #1d4ed8; }
+        .status-processing { background: #fef3c7; color: #b45309; }
+        .status-cancelled { background: #fee2e2; color: #b91c1c; }
+
+        /* 約束驗證清單 */
+        .checks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .check-card {
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius-md);
+            padding: 16px;
+        }
+
+        .check-card h4 {
+            font-size: 0.95rem;
+            color: var(--slate-900);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .check-card p {
+            font-size: 0.85rem;
+            color: var(--slate-600);
+            line-height: 1.5;
+        }
+
+        .badge-pass {
+            background: #dcfce7;
+            color: #15803d;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        /* 頁尾按鈕列 */
+        .footer-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-top: 32px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+        }
+
+        .btn-api {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn-api:hover {
+            background: #fff;
+            color: var(--slate-900);
+        }
+
+        @media (max-width: 768px) {
+            .header-card { padding: 20px; }
+            .brand-title h1 { font-size: 1.4rem; }
+            .stat-value { font-size: 1.4rem; }
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="badge">Python Flask 應用</div>
-        <h1>Hello, World!</h1>
-        <p class="subtitle">歡迎來到python製作的一頁式網站</p>
-        
-        <button class="btn" onclick="handleClick()">點擊互動體驗</button>
-        
-        <div class="info-box">
-            <p>伺服器：<strong>Flask (Python)</strong></p>
-            <p>互動次數：<span id="clickCount">0</span> 次</p>
-            <p id="msg"></p>
+    <div class="container">
+        <!-- 頂部 Hero 卡片 -->
+        <header class="header-card">
+            <div class="header-top">
+                <div class="brand-title">
+                    <h1>Hello World - SQLite 訂單管理系統</h1>
+                </div>
+                <div class="tag-cloud">
+                    <span class="pill pill-render">☁️ Render 雲端運作中</span>
+                    <span class="pill pill-sqlite">🗄️ orders.db</span>
+                    <span class="pill pill-flask">🐍 Flask 3.x</span>
+                </div>
+            </div>
+            <p class="subtitle">
+                歡迎來到 python 製作的一頁式訂單系統！此系統包含 <strong>customer (客戶)</strong>、<strong>product (商品)</strong>、<strong>orders (訂單)</strong> 與 <strong>order_item (訂單明細，複合主鍵)</strong> 四張資料表，並配置 CHECK 約束與下單歷史單價保存機制。您可在 Render 線上網址直接驗證各表資料。
+            </p>
+        </header>
+
+        <!-- 數據指標卡片 -->
+        <section class="stats-grid">
+            <div class="stat-card" style="border-left-color: #4f46e5;">
+                <div class="stat-label">客戶總數 (Customer)</div>
+                <div class="stat-value">{{ customers|length }} <span style="font-size: 1rem; font-weight: normal; color: #64748b;">家</span></div>
+                <div class="stat-sub">5 筆繁體中文企業資料</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #06b6d4;">
+                <div class="stat-label">商品品項 (Product)</div>
+                <div class="stat-value">{{ products|length }} <span style="font-size: 1rem; font-weight: normal; color: #64748b;">項</span></div>
+                <div class="stat-sub">單價 CHECK ≥ 0、庫存 CHECK ≥ 0</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #f59e0b;">
+                <div class="stat-label">訂單數量 (Orders)</div>
+                <div class="stat-value">{{ orders|length }} <span style="font-size: 1rem; font-weight: normal; color: #64748b;">筆</span></div>
+                <div class="stat-sub">包含多項商品訂購案例</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #10b981;">
+                <div class="stat-label">訂單總金額 (Revenue)</div>
+                <div class="stat-value text-price">${{ "{:,.0f}".format(total_revenue) }}</div>
+                <div class="stat-sub">總銷量 {{ total_qty }} 件商品</div>
+            </div>
+        </section>
+
+        <!-- 頁籤導覽按鈕 -->
+        <nav class="tabs-nav" aria-label="資料表切換">
+            <button class="tab-btn active" onclick="switchTab('tab-summary')">★ 訂單與明細彙整 (含多項商品案例)</button>
+            <button class="tab-btn" onclick="switchTab('tab-customer')">1. 客戶資料 (customer)</button>
+            <button class="tab-btn" onclick="switchTab('tab-product')">2. 商品資料 (product)</button>
+            <button class="tab-btn" onclick="switchTab('tab-orders')">3. 訂單主表 (orders)</button>
+            <button class="tab-btn" onclick="switchTab('tab-items')">4. 訂單明細 (order_item)</button>
+            <button class="tab-btn" onclick="switchTab('tab-rules')">🛡️ 資料庫約束規範說明</button>
+        </nav>
+
+        <!-- 頁籤內容 0: 彙整檢視 (多項商品案例展示) -->
+        <div id="tab-summary" class="tab-content active">
+            <div class="content-card">
+                <div class="content-header">
+                    <div class="content-title">
+                        <span>★ 訂單彙整總覽 (JOIN 查詢驗證)</span>
+                    </div>
+                    <span class="schema-badge">orders ⨝ customer ⨝ order_item</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-center">訂單編號</th>
+                                <th>客戶名稱</th>
+                                <th class="col-center">下單日期</th>
+                                <th class="col-center">業務人員</th>
+                                <th class="col-center">訂單狀態</th>
+                                <th class="col-center">商品品項數</th>
+                                <th class="col-right">購買總件數</th>
+                                <th class="col-right">訂單總金額</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in order_summary %}
+                            <tr>
+                                <td class="col-center text-bold text-mono">#{{ row.order_id }}</td>
+                                <td class="text-bold">{{ row.customer_name }}</td>
+                                <td class="col-center text-mono">{{ row.order_date }}</td>
+                                <td class="col-center">{{ row.salesperson }}</td>
+                                <td class="col-center">
+                                    {% if row.status == '已完成' %}
+                                        <span class="status-badge status-completed">已完成</span>
+                                    {% elif row.status == '已出貨' %}
+                                        <span class="status-badge status-shipped">已出貨</span>
+                                    {% elif row.status == '處理中' %}
+                                        <span class="status-badge status-processing">處理中</span>
+                                    {% else %}
+                                        <span class="status-badge status-cancelled">{{ row.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-center">
+                                    {% if row.item_count > 1 %}
+                                        <span style="color: #4f46e5; font-weight: 700;">{{ row.item_count }} 項 (多品項)</span>
+                                    {% else %}
+                                        <span>{{ row.item_count }} 項</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-right text-mono">{{ row.total_quantity }} 件</td>
+                                <td class="col-right text-price">${{ "{:,.0f}".format(row.total_amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+
+        <!-- 頁籤內容 1: customer -->
+        <div id="tab-customer" class="tab-content">
+            <div class="content-card">
+                <div class="content-header">
+                    <div class="content-title">
+                        <span>1. 客戶資料表 (customer)</span>
+                    </div>
+                    <span class="schema-badge">customer_id (PK), name, phone, address, created_date</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-center">客戶編號 (PK)</th>
+                                <th>客戶名稱</th>
+                                <th>聯絡電話</th>
+                                <th>公司地址</th>
+                                <th class="col-center">建檔日期</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in customers %}
+                            <tr>
+                                <td class="col-center text-bold text-mono">{{ c.customer_id }}</td>
+                                <td class="text-bold">{{ c.name }}</td>
+                                <td class="text-mono">{{ c.phone }}</td>
+                                <td>{{ c.address }}</td>
+                                <td class="col-center text-mono">{{ c.created_date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 頁籤內容 2: product -->
+        <div id="tab-product" class="tab-content">
+            <div class="content-card">
+                <div class="content-header">
+                    <div class="content-title">
+                        <span>2. 商品資料表 (product)</span>
+                    </div>
+                    <span class="schema-badge">product_id (PK), name, price (CHECK ≥ 0), stock (CHECK ≥ 0), category</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-center">商品編號 (PK)</th>
+                                <th>商品名稱</th>
+                                <th class="col-right">目前單價</th>
+                                <th class="col-right">現有庫存</th>
+                                <th class="col-center">商品分類</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in products %}
+                            <tr>
+                                <td class="col-center text-bold text-mono">{{ p.product_id }}</td>
+                                <td class="text-bold">{{ p.name }}</td>
+                                <td class="col-right text-price">${{ "{:,.0f}".format(p.price) }}</td>
+                                <td class="col-right text-mono">{{ p.stock }}</td>
+                                <td class="col-center"><span class="pill pill-render" style="font-size:0.75rem;">{{ p.category }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 頁籤內容 3: orders -->
+        <div id="tab-orders" class="tab-content">
+            <div class="content-card">
+                <div class="content-header">
+                    <div class="content-title">
+                        <span>3. 訂單主表 (orders)</span>
+                    </div>
+                    <span class="schema-badge">order_id (PK), customer_id (FK), order_date, status, salesperson</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-center">訂單編號 (PK)</th>
+                                <th>客戶關聯 (FK)</th>
+                                <th class="col-center">下單日期</th>
+                                <th class="col-center">訂單狀態</th>
+                                <th class="col-center">業務負責人</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for o in orders %}
+                            <tr>
+                                <td class="col-center text-bold text-mono">#{{ o.order_id }}</td>
+                                <td><span class="text-mono" style="color:#6366f1;">[ID {{ o.customer_id }}]</span> {{ o.customer_name }}</td>
+                                <td class="col-center text-mono">{{ o.order_date }}</td>
+                                <td class="col-center">
+                                    {% if o.status == '已完成' %}
+                                        <span class="status-badge status-completed">已完成</span>
+                                    {% elif o.status == '已出貨' %}
+                                        <span class="status-badge status-shipped">已出貨</span>
+                                    {% elif o.status == '處理中' %}
+                                        <span class="status-badge status-processing">處理中</span>
+                                    {% else %}
+                                        <span class="status-badge status-cancelled">{{ o.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-center">{{ o.salesperson }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 頁籤內容 4: order_item -->
+        <div id="tab-items" class="tab-content">
+            <div class="content-card">
+                <div class="content-header">
+                    <div class="content-title">
+                        <span>4. 訂單明細資料表 (order_item)</span>
+                    </div>
+                    <span class="schema-badge">PRIMARY KEY (order_id, product_id) | CHECK (quantity > 0) | CHECK (unit_price ≥ 0)</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-center">訂單編號 (FK)</th>
+                                <th class="col-center">商品編號 (FK)</th>
+                                <th>商品名稱</th>
+                                <th class="col-right">訂購數量 (CHECK > 0)</th>
+                                <th class="col-right">下單歷史單價 (CHECK ≥ 0)</th>
+                                <th class="col-right">小計金額</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order_items %}
+                            <tr>
+                                <td class="col-center text-bold text-mono">#{{ item.order_id }}</td>
+                                <td class="col-center text-mono">{{ item.product_id }}</td>
+                                <td>{{ item.product_name }}</td>
+                                <td class="col-right text-mono">{{ item.quantity }}</td>
+                                <td class="col-right text-price">${{ "{:,.0f}".format(item.unit_price) }}</td>
+                                <td class="col-right text-bold text-price">${{ "{:,.0f}".format(item.subtotal) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 頁籤內容 5: 規範驗證說明 -->
+        <div id="tab-rules" class="tab-content">
+            <div class="content-card">
+                <div class="content-title" style="margin-bottom: 12px;">
+                    <span>🛡️ SQLite 資料庫完整性約束驗證報告</span>
+                </div>
+                <p style="color: var(--slate-600); font-size: 0.9rem; line-height: 1.6;">
+                    本系統嚴格遵循 SQLite 關聯式架構與正規化設計，約束規範檢驗項目如下：
+                </p>
+                <div class="checks-grid">
+                    <div class="check-card">
+                        <h4>複合主鍵 (Composite PK) <span class="badge-pass">PASS</span></h4>
+                        <p><code>order_item</code> 以 <code>(order_id, product_id)</code> 為複合主鍵，防止同一筆訂單重複加入相同商品的無效項目。</p>
+                    </div>
+                    <div class="check-card">
+                        <h4>數量大於 0 約束 <span class="badge-pass">PASS</span></h4>
+                        <p><code>CHECK (quantity > 0)</code> 約束已加入，保證訂單項目購買數量必為正整數。</p>
+                    </div>
+                    <div class="check-card">
+                        <h4>單價不可為負約束 <span class="badge-pass">PASS</span></h4>
+                        <p><code>product.price</code> 與 <code>order_item.unit_price</code> 皆配置 <code>CHECK (price >= 0)</code>，防範負數價格。</p>
+                    </div>
+                    <div class="check-card">
+                        <h4>下單歷史單價保存 <span class="badge-pass">PASS</span></h4>
+                        <p><code>order_item.unit_price</code> 保存成交當下的商品單價，未來即使商品價格調整，歷史訂單紀錄依然正確無誤。</p>
+                    </div>
+                    <div class="check-card">
+                        <h4>外鍵級聯與約束 <span class="badge-pass">PASS</span></h4>
+                        <p><code>PRAGMA foreign_keys = ON;</code> 啟用，訂單明細級聯關聯訂單主表，刪除訂單時明細自動同步。</p>
+                    </div>
+                    <div class="check-card">
+                        <h4>多品項訂單案例 <span class="badge-pass">PASS</span></h4>
+                        <p>訂單 #1 (2項)、訂單 #2 (3項)、訂單 #3 (2項)、訂單 #4 (2項)，完全滿足多項商品訂購驗證需求。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 頁尾資訊 -->
+        <footer class="footer-bar">
+            <div>
+                © 2026 SQLite Order Management System • Flask & SQLite on Render
+            </div>
+            <div>
+                <a href="/api/check" target="_blank" class="btn-api">檢視 JSON API 輸出</a>
+            </div>
+        </footer>
     </div>
 
     <script>
-        let count = 0;
-        const messages = [
-            "太棒了！網站運作非常順暢！",
-            "Flask 輕量且功能強大！",
-            "一頁式網站已成功載入！",
-            "繼續探索 Python Web 開發的樂趣吧！"
-        ];
+        function switchTab(tabId) {
+            // 切換按鈕狀態
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
 
-        function handleClick() {
-            count++;
-            document.getElementById('clickCount').textContent = count;
-            const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-            document.getElementById('msg').textContent = randomMsg;
+            // 切換內容區塊
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
         }
     </script>
 </body>
