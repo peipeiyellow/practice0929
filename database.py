@@ -1,6 +1,15 @@
 import os
 import sqlite3
+import sys
 from werkzeug.security import generate_password_hash
+
+# 強制標準輸出為 UTF-8 編碼，防止 Windows 終端機產生中文亂碼
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 DATABASE = os.path.join(os.path.dirname(__file__), "orders.db")
 

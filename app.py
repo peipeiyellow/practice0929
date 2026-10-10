@@ -18,6 +18,22 @@ from create_db import DB_PATH, get_connection, init_database
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "orders_system_secret_key_2026")
 
+# 確保 JSON API 輸出繁體中文而不轉譯為 \uXXXX 編碼
+app.config["JSON_AS_ASCII"] = False
+if hasattr(app, "json") and hasattr(app.json, "ensure_ascii"):
+    app.json.ensure_ascii = False
+
+
+@app.after_request
+def set_utf8_encoding(response):
+    """確保所有 HTTP 回應標頭均明確指定 UTF-8，防止瀏覽器產生中文亂碼"""
+    content_type = response.headers.get("Content-Type", "")
+    if "text/html" in content_type and "charset" not in content_type:
+        response.headers["Content-Type"] = "text/html; charset=utf-8"
+    elif "application/json" in content_type and "charset" not in content_type:
+        response.headers["Content-Type"] = "application/json; charset=utf-8"
+    return response
+
 
 def ensure_db():
     """確保 orders.db 資料庫檔案存在，若不存在則自動初始化建立"""
