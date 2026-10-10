@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訂單 #{{ order.order_id }} 出貨單 - SQLite 訂單系統</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+            padding: 32px 16px;
+            min-height: 100vh;
+        }
+        .container { max-width: 850px; margin: 0 auto; }
+        .invoice-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+            border: 1px solid var(--slate-200);
+            position: relative;
+        }
+        .invoice-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--slate-200);
+            padding-bottom: 24px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .company-info h1 {
+            font-size: 1.8rem;
+            color: var(--slate-900);
+            letter-spacing: -0.02em;
+            margin-bottom: 4px;
+        }
+        .company-info p { color: var(--slate-500); font-size: 0.9rem; }
+        .order-meta { text-align: right; }
+        @media (max-width: 640px) { .order-meta { text-align: left; } }
+        .order-num { font-size: 1.4rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; font-family: monospace; }
+        .order-date { color: var(--slate-600); font-size: 0.9rem; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+        .status-completed { background: #dcfce7; color: #15803d; }
+        .status-shipped { background: #dbeafe; color: #1d4ed8; }
+        .status-processing { background: #fef3c7; color: #b45309; }
+        .status-cancelled { background: #fee2e2; color: #b91c1c; }
+
+        /* 客戶資訊與 QR Code 區塊 */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 24px;
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 28px;
+            align-items: center;
+        }
+        @media (max-width: 640px) { .info-grid { grid-template-columns: 1fr; } }
+        .cust-details h3 { font-size: 0.85rem; font-weight: 700; color: var(--slate-500); text-transform: uppercase; margin-bottom: 8px; }
+        .cust-details .cust-name { font-size: 1.25rem; font-weight: 700; color: var(--slate-900); margin-bottom: 6px; }
+        .cust-details p { font-size: 0.9rem; color: var(--slate-600); margin-bottom: 4px; }
+        
+        .qrcode-box {
+            text-align: center;
+            background: #fff;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--slate-200);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .qrcode-box p { font-size: 0.75rem; color: var(--slate-500); margin-top: 6px; font-weight: 600; }
+        #qrcode img, #qrcode canvas { margin: 0 auto; display: block; }
+
+        /* 商品明細表格 */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+        .items-table th, .items-table td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--slate-200);
+            font-size: 0.92rem;
+        }
+        .items-table th { background: var(--slate-100); font-weight: 600; color: var(--slate-700); }
+        .items-table td { color: var(--slate-700); }
+        .col-right { text-align: right; }
+        .col-center { text-align: center; }
+
+        .invoice-total-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 12px;
+            padding-top: 16px;
+            border-top: 2px solid var(--slate-200);
+        }
+        .total-box { text-align: right; }
+        .total-box .label { font-size: 0.95rem; color: var(--slate-600); margin-bottom: 4px; }
+        .total-box .amount { font-size: 1.8rem; font-weight: 800; color: #4f46e5; }
+
+        /* 動作按鈕列 */
+        .actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 36px;
+            padding-top: 20px;
+            border-top: 1px dashed var(--slate-200);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: #4338ca; }
+        .btn-outline { background: #fff; color: var(--slate-700); border-color: var(--slate-200); }
+        .btn-outline:hover { background: var(--slate-100); }
+
+        .status-update-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-update-inline select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--slate-200);
+            font-size: 0.85rem;
+            background: #fff;
+        }
+
+        /* 列印樣式優化 */
+        @media print {
+            body { background: #fff; padding: 0; color: #000; }
+            .container { max-width: 100%; }
+            .invoice-card { box-shadow: none; border: none; padding: 0; }
+            .actions-bar { display: none !important; }
+            .status-update-inline { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="invoice-card">
+            <!-- 抬頭與訂單編號 -->
+            <div class="invoice-top">
+                <div class="company-info">
+                    <h1>📦 出貨明細單 (Packing Slip)</h1>
+                    <p>SQLite 企業訂單管理系統 • 官方正式出貨單據</p>
+                </div>
+                <div class="order-meta">
+                    <div class="order-num">訂單編號 #{{ order.order_id }}</div>
+                    <div class="order-date">下單日期：{{ order.order_date }}</div>
+                    <div>
+                        業務人員：<strong>{{ order.salesperson }}</strong>
+                    </div>
+                    <div>
+                        狀態：
+                        {% if order.status == '已完成' %}
+                            <span class="status-badge status-completed">已完成</span>
+                        {% elif order.status == '已出貨' %}
+                            <span class="status-badge status-shipped">已出貨</span>
+                        {% elif order.status == '處理中' %}
+                            <span class="status-badge status-processing">處理中</span>
+                        {% else %}
+                            <span class="status-badge status-cancelled">{{ order.status }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 客戶資訊與 QR Code (需求 9) -->
+            <div class="info-grid">
+                <div class="cust-details">
+                    <h3>收貨客戶資訊 (Customer Info)</h3>
+                    <div class="cust-name">{{ order.customer_name }}</div>
+                    <p>📞 聯絡電話：<strong>{{ order.customer_phone }}</strong></p>
+                    <p>📍 送貨地址：{{ order.customer_address }}</p>
+                    <p style="font-size:0.8rem; color:#64748b; margin-top:8px;">客戶編號 (FK): {{ order.customer_id }}</p>
+                </div>
+                
+                <div class="qrcode-box">
+                    <div id="qrcode"></div>
+                    <p>📱 掃描查看出貨單</p>
+                </div>
+            </div>
+
+            <!-- 出貨明細表格 (包含保存之下單歷史單價) -->
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;" class="col-center">項次</th>
+                        <th>商品名稱</th>
+                        <th class="col-center">分類</th>
+                        <th class="col-right">數量</th>
+                        <th class="col-right">成交單價 (歷史單價)</th>
+                        <th class="col-right">小計金額</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td class="col-center" style="font-weight:600; color:#64748b;">{{ loop.index }}</td>
+                        <td style="font-weight:600;">{{ item.product_name }}</td>
+                        <td class="col-center"><span style="font-size:0.8rem; color:#64748b;">{{ item.category }}</span></td>
+                        <td class="col-right" style="font-family:monospace; font-weight:600;">{{ item.quantity }}</td>
+                        <td class="col-right" style="color:#047857;">${{ "{:,.0f}".format(item.unit_price) }}</td>
+                        <td class="col-right" style="font-weight:700; color:#0f172a;">${{ "{:,.0f}".format(item.subtotal) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- 總計金額 -->
+            <div class="invoice-total-row">
+                <div class="total-box">
+                    <div class="label">商品品項：{{ items|length }} 項 ｜ 總數量：{{ total_qty }} 件</div>
+                    <div class="label" style="font-size: 1.1rem; font-weight:600; color:#1e293b;">出貨單總金額：</div>
+                    <div class="amount">${{ "{:,.0f}".format(total_amount) }}</div>
+                </div>
+            </div>
+
+            <!-- 操作按鈕列 -->
+            <div class="actions-bar">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <a href="/" class="btn btn-outline">← 返回首頁總覽</a>
+                    <button onclick="window.print()" class="btn btn-outline">🖨️ 列印此出貨單</button>
+                </div>
+
+                {% if is_admin %}
+                <!-- 管理員快速變更狀態 (需求 8) -->
+                <form method="POST" action="/admin/orders/update_status/{{ order.order_id }}" class="status-update-inline">
+                    <span style="font-size:0.85rem; font-weight:600; color:var(--slate-600);">變更狀態：</span>
+                    <select name="status" onchange="this.form.submit()">
+                        <option value="處理中" {% if order.status == '處理中' %}selected{% endif %}>處理中</option>
+                        <option value="已出貨" {% if order.status == '已出貨' %}selected{% endif %}>已出貨</option>
+                        <option value="已完成" {% if order.status == '已完成' %}selected{% endif %}>已完成</option>
+                        <option value="已取消" {% if order.status == '已取消' %}selected{% endif %}>已取消</option>
+                    </select>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- QRCode 生成腳本 (需求 9) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUrl = window.location.href;
+            const qrContainer = document.getElementById("qrcode");
+            
+            // 嘗試使用 QRCodeJS 生成，若失敗則使用 QRServer API 作為備用
+            if (typeof QRCode !== 'undefined') {
+                new QRCode(qrContainer, {
+                    text: currentUrl,
+                    width: 140,
+                    height: 140,
+                    colorDark : "#0f172a",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.M
+                });
+            } else {
+                const img = document.createElement("img");
+                img.src = "https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=" + encodeURIComponent(currentUrl);
+                img.alt = "訂單出貨單 QRCode";
+                img.width = 140;
+                img.height = 140;
+                qrContainer.appendChild(img);
+            }
+        });
+    </script>
+</body>
+</html>

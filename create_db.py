@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from werkzeug.security import generate_password_hash
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "orders.db")
 
@@ -13,8 +14,17 @@ def get_connection(db_path=DB_PATH):
 
 
 def create_tables(conn):
-    """建立四張資料表與約束條件"""
+    """建立管理員與四張業務資料表與約束條件"""
     cursor = conn.cursor()
+
+    # 0. 管理員資料表 admin (id PK, username UNIQUE, password_hash)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS admin (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL
+    );
+    """)
 
     # 1. 客戶資料表 customer (客戶編號 PK、名稱、電話、地址、建檔日期)
     cursor.execute("""
@@ -71,17 +81,24 @@ def create_tables(conn):
 
 
 def seed_data(conn):
-    """插入繁體中文測試資料"""
+    """插入繁體中文測試資料與預設管理員帳號"""
     cursor = conn.cursor()
 
-    # 清空現有測試資料（若重新執行初始化時）
+    # 清空現有測試資料（重新初始化時）
     cursor.execute("DELETE FROM order_item;")
     cursor.execute("DELETE FROM orders;")
     cursor.execute("DELETE FROM product;")
     cursor.execute("DELETE FROM customer;")
+    cursor.execute("DELETE FROM admin;")
 
     # 重設 AUTOINCREMENT 計數器
-    cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('customer', 'product', 'orders');")
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('customer', 'product', 'orders', 'admin');")
+
+    # 0. 建立預設管理員 (admin / admin123)
+    cursor.execute(
+        "INSERT INTO admin (username, password_hash) VALUES (?, ?);",
+        ("admin", generate_password_hash("admin123")),
+    )
 
     # 1. 插入 5 筆客戶資料 (客戶編號 PK、名稱、電話、地址、建檔日期)
     customers = [
@@ -156,7 +173,7 @@ def init_database(db_path=DB_PATH):
     try:
         create_tables(conn)
         seed_data(conn)
-        print(f"[成功] 資料庫建立並初始化完成: {db_path}")
+        print(f"[成功] 資料庫建立並初始化完成: {db_path} (已建立預設管理員 admin / admin123)")
     finally:
         conn.close()
 

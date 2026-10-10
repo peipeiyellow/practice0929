@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hello World - SQLite 訂單管理系統 (Render 即時驗證)</title>
-    <meta name="description" content="基於 Python Flask 與 SQLite orders.db 建置的訂單管理系統與資料庫驗證面板">
+    <meta name="description" content="基於 Python Flask 與 SQLite orders.db 建置的訂單管理系統，支援管理員維護、多品項訂單與出貨單 QRCode">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,49 +27,38 @@
             --slate-50: #f8fafc;
             --radius-md: 12px;
             --radius-lg: 16px;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
             color: #1e293b;
             min-height: 100vh;
             padding: 24px 16px;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1240px; margin: 0 auto; }
 
         /* 頂端 Hero Header */
         .header-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.98);
             border-radius: var(--radius-lg);
-            padding: 32px;
+            padding: 30px;
             box-shadow: var(--shadow-lg);
             margin-bottom: 24px;
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .header-card::before {
             content: "";
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             height: 6px;
             background: linear-gradient(90deg, #4f46e5, #06b6d4, #10b981);
         }
@@ -80,13 +69,7 @@
             justify-content: space-between;
             align-items: center;
             gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .brand-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            margin-bottom: 12px;
         }
 
         .brand-title h1 {
@@ -96,12 +79,37 @@
             letter-spacing: -0.02em;
         }
 
-        .tag-cloud {
+        .auth-bar {
             display: flex;
+            align-items: center;
+            gap: 12px;
             flex-wrap: wrap;
-            gap: 8px;
         }
 
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-success:hover { background: #059669; }
+        .btn-outline { background: #fff; color: var(--slate-700); border-color: var(--slate-200); }
+        .btn-outline:hover { background: var(--slate-100); }
+        .btn-danger { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+        .btn-danger:hover { background: #fecaca; }
+
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .pill {
             display: inline-flex;
             align-items: center;
@@ -111,73 +119,33 @@
             font-size: 0.8rem;
             font-weight: 600;
         }
-
-        .pill-render {
-            background: #dbeafe;
-            color: #1d4ed8;
-        }
-
-        .pill-sqlite {
-            background: #dcfce7;
-            color: #15803d;
-        }
-
-        .pill-flask {
-            background: #fef3c7;
-            color: #b45309;
-        }
-
-        .subtitle {
-            font-size: 0.95rem;
-            color: var(--slate-600);
-            line-height: 1.6;
-        }
+        .pill-render { background: #dbeafe; color: #1d4ed8; }
+        .pill-sqlite { background: #dcfce7; color: #15803d; }
+        .pill-flask { background: #fef3c7; color: #b45309; }
+        .pill-admin { background: #f3e8ff; color: #7e22ce; }
 
         /* 統計指標卡片 */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
             margin-bottom: 24px;
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.98);
             border-radius: var(--radius-md);
             padding: 20px;
             box-shadow: var(--shadow-md);
             border-left: 4px solid var(--primary);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s;
         }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-label { font-size: 0.85rem; font-weight: 600; color: var(--slate-500); text-transform: uppercase; margin-bottom: 6px; }
+        .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--slate-900); }
+        .stat-sub { font-size: 0.75rem; color: var(--slate-500); margin-top: 4px; }
 
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .stat-label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--slate-500);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 6px;
-        }
-
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--slate-900);
-        }
-
-        .stat-sub {
-            font-size: 0.75rem;
-            color: var(--slate-500);
-            margin-top: 4px;
-        }
-
-        /* 頁籤切換 */
+        /* 頁籤導覽 */
         .tabs-nav {
             display: flex;
             gap: 8px;
@@ -195,36 +163,15 @@
             font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
             white-space: nowrap;
         }
-
-        .tab-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
-        }
-
-        .tab-btn.active {
-            background: #fff;
-            color: var(--slate-900);
-            box-shadow: var(--shadow-md);
-        }
-
-        /* 內容容器 */
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .tab-btn:hover { background: rgba(255, 255, 255, 0.25); }
+        .tab-btn.active { background: #fff; color: var(--slate-900); box-shadow: var(--shadow-md); }
 
         /* 表格區塊卡片 */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         .content-card {
             background: rgba(255, 255, 255, 0.98);
             border-radius: var(--radius-lg);
@@ -232,7 +179,6 @@
             box-shadow: var(--shadow-lg);
             margin-bottom: 24px;
         }
-
         .content-header {
             display: flex;
             justify-content: space-between;
@@ -241,25 +187,8 @@
             flex-wrap: wrap;
             gap: 12px;
         }
-
-        .content-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--slate-900);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .schema-badge {
-            font-size: 0.75rem;
-            font-weight: 500;
-            background: var(--slate-100);
-            color: var(--slate-600);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-family: monospace;
-        }
+        .content-title { font-size: 1.25rem; font-weight: 700; color: var(--slate-900); display: flex; align-items: center; gap: 8px; }
+        .schema-badge { font-size: 0.75rem; font-weight: 500; background: var(--slate-100); color: var(--slate-600); padding: 4px 8px; border-radius: 6px; font-family: monospace; }
 
         /* 表格樣式 */
         .table-responsive {
@@ -267,98 +196,92 @@
             border-radius: var(--radius-md);
             border: 1px solid var(--slate-200);
         }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-            text-align: left;
-        }
-
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left; }
         th {
             background: var(--slate-50);
             color: var(--slate-700);
             font-weight: 600;
-            padding: 12px 16px;
+            padding: 12px 14px;
             border-bottom: 2px solid var(--slate-200);
             white-space: nowrap;
         }
-
         td {
-            padding: 12px 16px;
+            padding: 12px 14px;
             border-bottom: 1px solid var(--slate-200);
             color: var(--slate-700);
             white-space: nowrap;
         }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover td {
-            background-color: var(--primary-light);
-        }
-
+        tr:hover td { background-color: var(--primary-light); }
         .col-center { text-align: center; }
         .col-right { text-align: right; }
         .text-bold { font-weight: 600; }
         .text-mono { font-family: monospace; }
         .text-price { color: #047857; font-weight: 600; }
 
-        /* 狀態標籤 */
+        /* 狀態標籤與即時下拉選單 (需求 8) */
+        .status-select {
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--slate-200);
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: #fff;
+            cursor: pointer;
+        }
         .status-badge {
             display: inline-block;
             padding: 4px 10px;
             border-radius: 9999px;
             font-size: 0.8rem;
             font-weight: 600;
-            text-align: center;
         }
         .status-completed { background: #dcfce7; color: #15803d; }
         .status-shipped { background: #dbeafe; color: #1d4ed8; }
         .status-processing { background: #fef3c7; color: #b45309; }
         .status-cancelled { background: #fee2e2; color: #b91c1c; }
 
-        /* 約束驗證清單 */
-        .checks-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
-            margin-top: 16px;
-        }
-
-        .check-card {
-            background: var(--slate-50);
-            border: 1px solid var(--slate-200);
-            border-radius: var(--radius-md);
+        /* 模態彈跳視窗 (Modal) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
             padding: 16px;
         }
-
-        .check-card h4 {
-            font-size: 0.95rem;
-            color: var(--slate-900);
-            margin-bottom: 8px;
+        .modal.active { display: flex; }
+        .modal-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 28px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2);
+            position: relative;
+        }
+        .modal-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 6px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--slate-200);
+            padding-bottom: 12px;
+        }
+        .close-btn { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--slate-500); }
+        .form-group { margin-bottom: 16px; text-align: left; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--slate-700); margin-bottom: 6px; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            font-size: 0.9rem;
         }
 
-        .check-card p {
-            font-size: 0.85rem;
-            color: var(--slate-600);
-            line-height: 1.5;
-        }
-
-        .badge-pass {
-            background: #dcfce7;
-            color: #15803d;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-
-        /* 頁尾按鈕列 */
+        /* 頁尾 */
         .footer-bar {
             display: flex;
             flex-wrap: wrap;
@@ -369,7 +292,6 @@
             color: rgba(255, 255, 255, 0.7);
             font-size: 0.85rem;
         }
-
         .btn-api {
             background: rgba(255, 255, 255, 0.15);
             color: #fff;
@@ -377,20 +299,7 @@
             border-radius: 8px;
             text-decoration: none;
             font-size: 0.85rem;
-            font-weight: 500;
             border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.2s ease;
-        }
-
-        .btn-api:hover {
-            background: #fff;
-            color: var(--slate-900);
-        }
-
-        @media (max-width: 768px) {
-            .header-card { padding: 20px; }
-            .brand-title h1 { font-size: 1.4rem; }
-            .stat-value { font-size: 1.4rem; }
         }
     </style>
 </head>
@@ -402,15 +311,27 @@
                 <div class="brand-title">
                     <h1>Hello World - SQLite 訂單管理系統</h1>
                 </div>
-                <div class="tag-cloud">
-                    <span class="pill pill-render">☁️ Render 雲端運作中</span>
-                    <span class="pill pill-sqlite">🗄️ orders.db</span>
-                    <span class="pill pill-flask">🐍 Flask 3.x</span>
+                <div class="auth-bar">
+                    {% if is_admin %}
+                        <span class="pill pill-admin">👤 管理員：<strong>{{ session['admin'] }}</strong></span>
+                        <a href="/admin/orders/new" class="btn btn-primary">➕ 新增訂單</a>
+                        <a href="/logout" class="btn btn-outline">🚪 登出</a>
+                    {% else %}
+                        <a href="/login" class="btn btn-primary">🔑 管理員登入</a>
+                    {% endif %}
                 </div>
             </div>
-            <p class="subtitle">
-                歡迎來到 python 製作的一頁式訂單系統！此系統包含 <strong>customer (客戶)</strong>、<strong>product (商品)</strong>、<strong>orders (訂單)</strong> 與 <strong>order_item (訂單明細，複合主鍵)</strong> 四張資料表，並配置 CHECK 約束與下單歷史單價保存機制。您可在 Render 線上網址直接驗證各表資料。
+            <p style="color: var(--slate-600); font-size: 0.95rem; line-height: 1.6;">
+                歡迎來到 python 製作的一頁式訂單系統！本系統支援管理員登入維護客戶與商品、新增多項商品訂單、保存成交歷史單價，每張訂單皆具備專屬出貨單與 QRCode。
             </p>
+            <div class="tag-cloud">
+                <span class="pill pill-render">☁️ Render 雲端環境</span>
+                <span class="pill pill-sqlite">🗄️ orders.db</span>
+                <span class="pill pill-flask">🐍 Python Flask 3.x</span>
+                {% if is_admin %}
+                <span class="pill pill-admin">🛡️ 管理維護權限已啟用</span>
+                {% endif %}
+            </div>
         </header>
 
         <!-- 數據指標卡片 -->
@@ -418,17 +339,23 @@
             <div class="stat-card" style="border-left-color: #4f46e5;">
                 <div class="stat-label">客戶總數 (Customer)</div>
                 <div class="stat-value">{{ customers|length }} <span style="font-size: 1rem; font-weight: normal; color: #64748b;">家</span></div>
-                <div class="stat-sub">5 筆繁體中文企業資料</div>
+                <div class="stat-sub">
+                    {% if is_admin %}<a href="javascript:void(0)" onclick="openModal('modalAddCustomer')" style="color:#4f46e5; text-decoration:none; font-weight:600;">+ 新增客戶</a>{% else %}5 筆繁體中文企業資料{% endif %}
+                </div>
             </div>
             <div class="stat-card" style="border-left-color: #06b6d4;">
                 <div class="stat-label">商品品項 (Product)</div>
                 <div class="stat-value">{{ products|length }} <span style="font-size: 1rem; font-weight: normal; color: #64748b;">項</span></div>
-                <div class="stat-sub">單價 CHECK ≥ 0、庫存 CHECK ≥ 0</div>
+                <div class="stat-sub">
+                    {% if is_admin %}<a href="javascript:void(0)" onclick="openModal('modalAddProduct')" style="color:#06b6d4; text-decoration:none; font-weight:600;">+ 新增商品</a>{% else %}單價 CHECK ≥ 0、庫存 CHECK ≥ 0{% endif %}
+                </div>
             </div>
             <div class="stat-card" style="border-left-color: #f59e0b;">
                 <div class="stat-label">訂單數量 (Orders)</div>
                 <div class="stat-value">{{ orders|length }} <span style="font-size: 1rem; font-weight: normal; color: #64748b;">筆</span></div>
-                <div class="stat-sub">包含多項商品訂購案例</div>
+                <div class="stat-sub">
+                    {% if is_admin %}<a href="/admin/orders/new" style="color:#b45309; text-decoration:none; font-weight:600;">+ 建立多商品訂單</a>{% else %}包含多品項訂單案例{% endif %}
+                </div>
             </div>
             <div class="stat-card" style="border-left-color: #10b981;">
                 <div class="stat-label">訂單總金額 (Revenue)</div>
@@ -437,37 +364,39 @@
             </div>
         </section>
 
-        <!-- 頁籤導覽按鈕 -->
+        <!-- 頁籤切換按鈕 -->
         <nav class="tabs-nav" aria-label="資料表切換">
-            <button class="tab-btn active" onclick="switchTab('tab-summary')">★ 訂單與明細彙整 (含多項商品案例)</button>
+            <button class="tab-btn active" onclick="switchTab('tab-orders-list')">★ 訂單列表 (列表即時更新狀態 & 出貨單 QRCode)</button>
             <button class="tab-btn" onclick="switchTab('tab-customer')">1. 客戶資料 (customer)</button>
-            <button class="tab-btn" onclick="switchTab('tab-product')">2. 商品資料 (product)</button>
-            <button class="tab-btn" onclick="switchTab('tab-orders')">3. 訂單主表 (orders)</button>
-            <button class="tab-btn" onclick="switchTab('tab-items')">4. 訂單明細 (order_item)</button>
-            <button class="tab-btn" onclick="switchTab('tab-rules')">🛡️ 資料庫約束規範說明</button>
+            <button class="tab-btn" onclick="switchTab('tab-product')">2. 商品資料 (product / 支援改價驗證)</button>
+            <button class="tab-btn" onclick="switchTab('tab-items')">3. 訂單明細 (order_item - 複合主鍵)</button>
+            <button class="tab-btn" onclick="switchTab('tab-rules')">🛡️ 規格與約束驗證說明</button>
         </nav>
 
-        <!-- 頁籤內容 0: 彙整檢視 (多項商品案例展示) -->
-        <div id="tab-summary" class="tab-content active">
+        <!-- 頁籤 1: 訂單列表 (整合需求 8 列表直接更新狀態、需求 9 出貨單 QRCode) -->
+        <div id="tab-orders-list" class="tab-content active">
             <div class="content-card">
                 <div class="content-header">
                     <div class="content-title">
-                        <span>★ 訂單彙整總覽 (JOIN 查詢驗證)</span>
+                        <span>📋 訂單總覽 (支援列表即時更新狀態、點擊查看專屬出貨單 & QR Code)</span>
                     </div>
-                    <span class="schema-badge">orders ⨝ customer ⨝ order_item</span>
+                    {% if is_admin %}
+                    <a href="/admin/orders/new" class="btn btn-primary">➕ 建立新訂單</a>
+                    {% endif %}
                 </div>
                 <div class="table-responsive">
                     <table>
                         <thead>
                             <tr>
-                                <th class="col-center">訂單編號</th>
+                                <th class="col-center">訂單編號 (PK)</th>
                                 <th>客戶名稱</th>
                                 <th class="col-center">下單日期</th>
-                                <th class="col-center">業務人員</th>
-                                <th class="col-center">訂單狀態</th>
-                                <th class="col-center">商品品項數</th>
-                                <th class="col-right">購買總件數</th>
-                                <th class="col-right">訂單總金額</th>
+                                <th class="col-center">業務負責人</th>
+                                <th class="col-center">品項數 / 總數量</th>
+                                <th class="col-right">訂單總額</th>
+                                <th class="col-center">訂單狀態 (需求 8: 列表直接更新)</th>
+                                <th class="col-center">出貨單專屬頁面 (需求 9)</th>
+                                {% if is_admin %}<th class="col-center">操作</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -478,25 +407,38 @@
                                 <td class="col-center text-mono">{{ row.order_date }}</td>
                                 <td class="col-center">{{ row.salesperson }}</td>
                                 <td class="col-center">
-                                    {% if row.status == '已完成' %}
-                                        <span class="status-badge status-completed">已完成</span>
-                                    {% elif row.status == '已出貨' %}
-                                        <span class="status-badge status-shipped">已出貨</span>
-                                    {% elif row.status == '處理中' %}
-                                        <span class="status-badge status-processing">處理中</span>
+                                    {% if row.item_count > 1 %}
+                                        <span style="color:#4f46e5; font-weight:700;">{{ row.item_count }} 品項</span>
                                     {% else %}
-                                        <span class="status-badge status-cancelled">{{ row.status }}</span>
+                                        <span>{{ row.item_count }} 品項</span>
                                     {% endif %}
+                                    <span style="color:#64748b; font-size:0.8rem;">({{ row.total_quantity }} 件)</span>
+                                </td>
+                                <td class="col-right text-price">${{ "{:,.0f}".format(row.total_amount) }}</td>
+                                <td class="col-center">
+                                    <!-- 需求 8: 列表直接更新狀態 -->
+                                    <form method="POST" action="/admin/orders/update_status/{{ row.order_id }}" style="margin:0;">
+                                        <select name="status" class="status-select" onchange="this.form.submit()" title="直接切換訂單狀態">
+                                            <option value="處理中" {% if row.status == '處理中' %}selected{% endif %}>處理中</option>
+                                            <option value="已出貨" {% if row.status == '已出貨' %}selected{% endif %}>已出貨</option>
+                                            <option value="已完成" {% if row.status == '已完成' %}selected{% endif %}>已完成</option>
+                                            <option value="已取消" {% if row.status == '已取消' %}selected{% endif %}>已取消</option>
+                                        </select>
+                                    </form>
                                 </td>
                                 <td class="col-center">
-                                    {% if row.item_count > 1 %}
-                                        <span style="color: #4f46e5; font-weight: 700;">{{ row.item_count }} 項 (多品項)</span>
-                                    {% else %}
-                                        <span>{{ row.item_count }} 項</span>
-                                    {% endif %}
+                                    <!-- 需求 9: 專屬頁面 /order/<id> -->
+                                    <a href="/order/{{ row.order_id }}" class="btn btn-outline" style="padding:4px 10px; font-size:0.8rem;">
+                                        📦 /order/{{ row.order_id }} 出貨單 & QR Code
+                                    </a>
                                 </td>
-                                <td class="col-right text-mono">{{ row.total_quantity }} 件</td>
-                                <td class="col-right text-price">${{ "{:,.0f}".format(row.total_amount) }}</td>
+                                {% if is_admin %}
+                                <td class="col-center">
+                                    <form method="POST" action="/admin/orders/delete/{{ row.order_id }}" onsubmit="return confirm('確定要刪除訂單 #{{ row.order_id }} 嗎？');" style="margin:0;">
+                                        <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.75rem;">刪除</button>
+                                    </form>
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -505,14 +447,16 @@
             </div>
         </div>
 
-        <!-- 頁籤內容 1: customer -->
+        <!-- 頁籤 2: 客戶資料 (customer) (需求 5 管理員維護) -->
         <div id="tab-customer" class="tab-content">
             <div class="content-card">
                 <div class="content-header">
                     <div class="content-title">
                         <span>1. 客戶資料表 (customer)</span>
                     </div>
-                    <span class="schema-badge">customer_id (PK), name, phone, address, created_date</span>
+                    {% if is_admin %}
+                    <button class="btn btn-primary" onclick="openModal('modalAddCustomer')">➕ 新增客戶</button>
+                    {% endif %}
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -523,6 +467,7 @@
                                 <th>聯絡電話</th>
                                 <th>公司地址</th>
                                 <th class="col-center">建檔日期</th>
+                                {% if is_admin %}<th class="col-center">操作</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -533,6 +478,14 @@
                                 <td class="text-mono">{{ c.phone }}</td>
                                 <td>{{ c.address }}</td>
                                 <td class="col-center text-mono">{{ c.created_date }}</td>
+                                {% if is_admin %}
+                                <td class="col-center">
+                                    <button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="openEditCustomer('{{ c.customer_id }}', '{{ c.name }}', '{{ c.phone }}', '{{ c.address }}')">編輯</button>
+                                    <form method="POST" action="/admin/customer/delete/{{ c.customer_id }}" style="display:inline; margin:0;" onsubmit="return confirm('確定刪除此客戶嗎？');">
+                                        <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.75rem;">刪除</button>
+                                    </form>
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -541,14 +494,17 @@
             </div>
         </div>
 
-        <!-- 頁籤內容 2: product -->
+        <!-- 頁籤 3: 商品資料 (product) (需求 5 維護 & 需求 7 改價不影響歷史訂單驗證) -->
         <div id="tab-product" class="tab-content">
             <div class="content-card">
                 <div class="content-header">
                     <div class="content-title">
                         <span>2. 商品資料表 (product)</span>
+                        <span class="schema-badge" style="background:#dbeafe; color:#1e40af;">💡 測試改價：修改商品價格後，上方歷史訂單與出貨單的成交單價依然保留不變！</span>
                     </div>
-                    <span class="schema-badge">product_id (PK), name, price (CHECK ≥ 0), stock (CHECK ≥ 0), category</span>
+                    {% if is_admin %}
+                    <button class="btn btn-primary" onclick="openModal('modalAddProduct')">➕ 新增商品</button>
+                    {% endif %}
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -556,9 +512,10 @@
                             <tr>
                                 <th class="col-center">商品編號 (PK)</th>
                                 <th>商品名稱</th>
-                                <th class="col-right">目前單價</th>
+                                <th class="col-right">現時單價 (CHECK ≥ 0)</th>
                                 <th class="col-right">現有庫存</th>
-                                <th class="col-center">商品分類</th>
+                                <th class="col-center">分類</th>
+                                {% if is_admin %}<th class="col-center">管理 (可改價驗證)</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -569,52 +526,14 @@
                                 <td class="col-right text-price">${{ "{:,.0f}".format(p.price) }}</td>
                                 <td class="col-right text-mono">{{ p.stock }}</td>
                                 <td class="col-center"><span class="pill pill-render" style="font-size:0.75rem;">{{ p.category }}</span></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 頁籤內容 3: orders -->
-        <div id="tab-orders" class="tab-content">
-            <div class="content-card">
-                <div class="content-header">
-                    <div class="content-title">
-                        <span>3. 訂單主表 (orders)</span>
-                    </div>
-                    <span class="schema-badge">order_id (PK), customer_id (FK), order_date, status, salesperson</span>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="col-center">訂單編號 (PK)</th>
-                                <th>客戶關聯 (FK)</th>
-                                <th class="col-center">下單日期</th>
-                                <th class="col-center">訂單狀態</th>
-                                <th class="col-center">業務負責人</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for o in orders %}
-                            <tr>
-                                <td class="col-center text-bold text-mono">#{{ o.order_id }}</td>
-                                <td><span class="text-mono" style="color:#6366f1;">[ID {{ o.customer_id }}]</span> {{ o.customer_name }}</td>
-                                <td class="col-center text-mono">{{ o.order_date }}</td>
+                                {% if is_admin %}
                                 <td class="col-center">
-                                    {% if o.status == '已完成' %}
-                                        <span class="status-badge status-completed">已完成</span>
-                                    {% elif o.status == '已出貨' %}
-                                        <span class="status-badge status-shipped">已出貨</span>
-                                    {% elif o.status == '處理中' %}
-                                        <span class="status-badge status-processing">處理中</span>
-                                    {% else %}
-                                        <span class="status-badge status-cancelled">{{ o.status }}</span>
-                                    {% endif %}
+                                    <button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="openEditProduct('{{ p.product_id }}', '{{ p.name }}', '{{ p.price }}', '{{ p.stock }}', '{{ p.category }}')">編輯/改價</button>
+                                    <form method="POST" action="/admin/product/delete/{{ p.product_id }}" style="display:inline; margin:0;" onsubmit="return confirm('確定刪除此商品嗎？');">
+                                        <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.75rem;">刪除</button>
+                                    </form>
                                 </td>
-                                <td class="col-center">{{ o.salesperson }}</td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -623,14 +542,14 @@
             </div>
         </div>
 
-        <!-- 頁籤內容 4: order_item -->
+        <!-- 頁籤 4: 訂單明細 (order_item) -->
         <div id="tab-items" class="tab-content">
             <div class="content-card">
                 <div class="content-header">
                     <div class="content-title">
-                        <span>4. 訂單明細資料表 (order_item)</span>
+                        <span>3. 訂單明細資料表 (order_item)</span>
                     </div>
-                    <span class="schema-badge">PRIMARY KEY (order_id, product_id) | CHECK (quantity > 0) | CHECK (unit_price ≥ 0)</span>
+                    <span class="schema-badge">PRIMARY KEY (order_id, product_id) | 數量 CHECK > 0 | 單價 CHECK ≥ 0</span>
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -639,8 +558,8 @@
                                 <th class="col-center">訂單編號 (FK)</th>
                                 <th class="col-center">商品編號 (FK)</th>
                                 <th>商品名稱</th>
-                                <th class="col-right">訂購數量 (CHECK > 0)</th>
-                                <th class="col-right">下單歷史單價 (CHECK ≥ 0)</th>
+                                <th class="col-right">購買數量 (CHECK > 0)</th>
+                                <th class="col-right">下單歷史單價 (需求 7)</th>
                                 <th class="col-right">小計金額</th>
                             </tr>
                         </thead>
@@ -661,66 +580,178 @@
             </div>
         </div>
 
-        <!-- 頁籤內容 5: 規範驗證說明 -->
+        <!-- 頁籤 5: 規範驗證說明 -->
         <div id="tab-rules" class="tab-content">
             <div class="content-card">
                 <div class="content-title" style="margin-bottom: 12px;">
                     <span>🛡️ SQLite 資料庫完整性約束驗證報告</span>
                 </div>
-                <p style="color: var(--slate-600); font-size: 0.9rem; line-height: 1.6;">
-                    本系統嚴格遵循 SQLite 關聯式架構與正規化設計，約束規範檢驗項目如下：
-                </p>
-                <div class="checks-grid">
-                    <div class="check-card">
-                        <h4>複合主鍵 (Composite PK) <span class="badge-pass">PASS</span></h4>
-                        <p><code>order_item</code> 以 <code>(order_id, product_id)</code> 為複合主鍵，防止同一筆訂單重複加入相同商品的無效項目。</p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+                    <div style="background:var(--slate-50); padding:16px; border-radius:8px; border:1px solid var(--slate-200);">
+                        <h4 style="margin-bottom:6px;">5. 管理員維護 (Admin CRUD) <span style="color:#15803d; font-size:0.75rem; background:#dcfce7; padding:2px 6px; border-radius:4px;">PASS</span></h4>
+                        <p style="font-size:0.85rem; color:var(--slate-600);">提供 admin/admin123 登入，可維護客戶、商品、訂單增刪改查。</p>
                     </div>
-                    <div class="check-card">
-                        <h4>數量大於 0 約束 <span class="badge-pass">PASS</span></h4>
-                        <p><code>CHECK (quantity > 0)</code> 約束已加入，保證訂單項目購買數量必為正整數。</p>
+                    <div style="background:var(--slate-50); padding:16px; border-radius:8px; border:1px solid var(--slate-200);">
+                        <h4 style="margin-bottom:6px;">6. 新增訂單多品項 <span style="color:#15803d; font-size:0.75rem; background:#dcfce7; padding:2px 6px; border-radius:4px;">PASS</span></h4>
+                        <p style="font-size:0.85rem; color:var(--slate-600);">客戶採用下拉選單、商品支援一次勾選多項並分別填入訂購數量。</p>
                     </div>
-                    <div class="check-card">
-                        <h4>單價不可為負約束 <span class="badge-pass">PASS</span></h4>
-                        <p><code>product.price</code> 與 <code>order_item.unit_price</code> 皆配置 <code>CHECK (price >= 0)</code>，防範負數價格。</p>
+                    <div style="background:var(--slate-50); padding:16px; border-radius:8px; border:1px solid var(--slate-200);">
+                        <h4 style="margin-bottom:6px;">7. 保存下單當時單價 <span style="color:#15803d; font-size:0.75rem; background:#dcfce7; padding:2px 6px; border-radius:4px;">PASS</span></h4>
+                        <p style="font-size:0.85rem; color:var(--slate-600);">order_item 保存下單當下的單價快照，商品改價完全不影響既有訂單金額。</p>
                     </div>
-                    <div class="check-card">
-                        <h4>下單歷史單價保存 <span class="badge-pass">PASS</span></h4>
-                        <p><code>order_item.unit_price</code> 保存成交當下的商品單價，未來即使商品價格調整，歷史訂單紀錄依然正確無誤。</p>
+                    <div style="background:var(--slate-50); padding:16px; border-radius:8px; border:1px solid var(--slate-200);">
+                        <h4 style="margin-bottom:6px;">8. 狀態列表直接更新 <span style="color:#15803d; font-size:0.75rem; background:#dcfce7; padding:2px 6px; border-radius:4px;">PASS</span></h4>
+                        <p style="font-size:0.85rem; color:var(--slate-600);">訂單列表包含直接切換的下拉選單（處理中 / 已出貨 / 已完成 / 已取消）。</p>
                     </div>
-                    <div class="check-card">
-                        <h4>外鍵級聯與約束 <span class="badge-pass">PASS</span></h4>
-                        <p><code>PRAGMA foreign_keys = ON;</code> 啟用，訂單明細級聯關聯訂單主表，刪除訂單時明細自動同步。</p>
-                    </div>
-                    <div class="check-card">
-                        <h4>多品項訂單案例 <span class="badge-pass">PASS</span></h4>
-                        <p>訂單 #1 (2項)、訂單 #2 (3項)、訂單 #3 (2項)、訂單 #4 (2項)，完全滿足多項商品訂購驗證需求。</p>
+                    <div style="background:var(--slate-50); padding:16px; border-radius:8px; border:1px solid var(--slate-200);">
+                        <h4 style="margin-bottom:6px;">9. 出貨單專屬頁面 & QR Code <span style="color:#15803d; font-size:0.75rem; background:#dcfce7; padding:2px 6px; border-radius:4px;">PASS</span></h4>
+                        <p style="font-size:0.85rem; color:var(--slate-600);">每筆訂單可點入 /order/&lt;訂單編號&gt;，呈現正式出貨單與 QRCode，支援直接列印。</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 頁尾資訊 -->
+        <!-- 頁尾 -->
         <footer class="footer-bar">
-            <div>
-                © 2026 SQLite Order Management System • Flask & SQLite on Render
-            </div>
-            <div>
-                <a href="/api/check" target="_blank" class="btn-api">檢視 JSON API 輸出</a>
-            </div>
+            <div>© 2026 SQLite Order Management System • Flask & Render</div>
+            <a href="/api/check" target="_blank" class="btn-api">檢視 JSON API 輸出</a>
         </footer>
+    </div>
+
+    <!-- 模態視窗：新增客戶 -->
+    <div id="modalAddCustomer" class="modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>➕ 新增客戶資料</h3>
+                <button class="close-btn" onclick="closeModal('modalAddCustomer')">&times;</button>
+            </div>
+            <form method="POST" action="/admin/customer/add">
+                <div class="form-group">
+                    <label>客戶名稱 *</label>
+                    <input type="text" name="name" required placeholder="如：日月光半導體股份有限公司">
+                </div>
+                <div class="form-group">
+                    <label>聯絡電話 *</label>
+                    <input type="text" name="phone" required placeholder="如：07-3617131">
+                </div>
+                <div class="form-group">
+                    <label>公司地址 *</label>
+                    <input type="text" name="address" required placeholder="如：高雄市楠梓加工出口區經三路26號">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; padding:10px;">確認新增客戶</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 模態視窗：編輯客戶 -->
+    <div id="modalEditCustomer" class="modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>✏️ 編輯客戶資料</h3>
+                <button class="close-btn" onclick="closeModal('modalEditCustomer')">&times;</button>
+            </div>
+            <form method="POST" id="editCustomerForm">
+                <div class="form-group">
+                    <label>客戶名稱 *</label>
+                    <input type="text" name="name" id="editCustName" required>
+                </div>
+                <div class="form-group">
+                    <label>聯絡電話 *</label>
+                    <input type="text" name="phone" id="editCustPhone" required>
+                </div>
+                <div class="form-group">
+                    <label>公司地址 *</label>
+                    <input type="text" name="address" id="editCustAddress" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; padding:10px;">儲存變更</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 模態視窗：新增商品 -->
+    <div id="modalAddProduct" class="modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>➕ 新增商品</h3>
+                <button class="close-btn" onclick="closeModal('modalAddProduct')">&times;</button>
+            </div>
+            <form method="POST" action="/admin/product/add">
+                <div class="form-group">
+                    <label>商品名稱 *</label>
+                    <input type="text" name="name" required placeholder="如：Thunderbolt 5 高速擴充底座">
+                </div>
+                <div class="form-group">
+                    <label>商品單價 (CHECK ≥ 0) *</label>
+                    <input type="number" name="price" step="0.01" min="0" required placeholder="如：7990">
+                </div>
+                <div class="form-group">
+                    <label>現有庫存 (CHECK ≥ 0) *</label>
+                    <input type="number" name="stock" min="0" value="50" required>
+                </div>
+                <div class="form-group">
+                    <label>商品分類 *</label>
+                    <input type="text" name="category" value="周邊配件" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; padding:10px;">確認新增商品</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 模態視窗：編輯商品 (可改價) -->
+    <div id="modalEditProduct" class="modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>✏️ 編輯商品 (支援改價)</h3>
+                <button class="close-btn" onclick="closeModal('modalEditProduct')">&times;</button>
+            </div>
+            <form method="POST" id="editProductForm">
+                <div class="form-group">
+                    <label>商品名稱 *</label>
+                    <input type="text" name="name" id="editProdName" required>
+                </div>
+                <div class="form-group">
+                    <label>商品單價 (修改此單價不會影響既有歷史訂單) *</label>
+                    <input type="number" name="price" id="editProdPrice" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>現有庫存 *</label>
+                    <input type="number" name="stock" id="editProdStock" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>分類 *</label>
+                    <input type="text" name="category" id="editProdCategory" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; padding:10px;">儲存變更</button>
+            </form>
+        </div>
     </div>
 
     <script>
         function switchTab(tabId) {
-            // 切換按鈕狀態
-            const buttons = document.querySelectorAll('.tab-btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
-
-            // 切換內容區塊
-            const contents = document.querySelectorAll('.tab-content');
-            contents.forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
+        }
+
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function openEditCustomer(id, name, phone, address) {
+            document.getElementById('editCustName').value = name;
+            document.getElementById('editCustPhone').value = phone;
+            document.getElementById('editCustAddress').value = address;
+            document.getElementById('editCustomerForm').action = '/admin/customer/edit/' + id;
+            openModal('modalEditCustomer');
+        }
+
+        function openEditProduct(id, name, price, stock, category) {
+            document.getElementById('editProdName').value = name;
+            document.getElementById('editProdPrice').value = price;
+            document.getElementById('editProdStock').value = stock;
+            document.getElementById('editProdCategory').value = category;
+            document.getElementById('editProductForm').action = '/admin/product/edit/' + id;
+            openModal('modalEditProduct');
         }
     </script>
 </body>

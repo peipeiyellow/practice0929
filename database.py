@@ -1,21 +1,31 @@
 import os
 import sqlite3
+from werkzeug.security import generate_password_hash
 
 DATABASE = os.path.join(os.path.dirname(__file__), "orders.db")
 
 
-def get_db():
+def get_db(db_path=DATABASE):
     """取得資料庫連線並啟用外鍵約束"""
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
 
-def init_db():
-    """初始化建立 orders.db 與四張資料表"""
-    conn = get_db()
+def init_db(db_path=DATABASE):
+    """初始化建立 orders.db 與資料表"""
+    conn = get_db(db_path)
     cursor = conn.cursor()
+
+    # 0. 管理員資料表 admin (id PK, username UNIQUE, password_hash)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS admin (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL
+    );
+    """)
 
     # 1. 客戶資料表 customer (客戶編號 PK、名稱、電話、地址、建檔日期)
     cursor.execute("""
@@ -71,8 +81,16 @@ def init_db():
 
 
 def seed_data(conn):
-    """插入 5 筆繁體中文測試資料"""
+    """插入繁體中文測試資料與預設管理員帳號"""
     cursor = conn.cursor()
+
+    # 0. 建立預設管理員 (admin / admin123)
+    cursor.execute("SELECT id FROM admin WHERE username = ?", ("admin",))
+    if not cursor.fetchone():
+        cursor.execute(
+            "INSERT INTO admin (username, password_hash) VALUES (?, ?);",
+            ("admin", generate_password_hash("admin123")),
+        )
 
     # 1. 客戶資料 5 筆
     cursor.execute("SELECT COUNT(*) FROM customer;")
@@ -121,20 +139,15 @@ def seed_data(conn):
 
         # 4. 訂單明細資料 (保存下單時歷史單價，且包含多項商品之案例)
         order_items = [
-            # 訂單 1 (含 2 項商品)
             (1, 1, 2, 45900.0),
             (1, 3, 5, 3280.0),
-            # 訂單 2 (含 3 項商品)
             (2, 2, 1, 16800.0),
             (2, 4, 2, 8800.0),
             (2, 5, 3, 5490.0),
-            # 訂單 3 (含 2 項商品)
             (3, 1, 1, 45900.0),
             (3, 5, 2, 5490.0),
-            # 訂單 4 (含 2 項商品)
             (4, 3, 3, 3280.0),
             (4, 4, 1, 8800.0),
-            # 訂單 5 (含 1 項商品)
             (5, 2, 2, 16800.0),
         ]
         cursor.executemany(
@@ -147,4 +160,4 @@ def seed_data(conn):
 
 if __name__ == "__main__":
     init_db()
-    print("orders.db 資料庫初始化與測試資料植入完成。")
+    print("orders.db 資料庫初始化完成 (預設管理員 admin / admin123)。")

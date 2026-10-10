@@ -93,6 +93,19 @@ def check_database(db_path=DB_PATH):
     print(f"       SQLite 資料庫內容驗證工具: {os.path.basename(db_path)}")
     print("#" * 60)
 
+    # 0. 驗證 admin 表
+    cursor.execute("SELECT id, username, password_hash FROM admin ORDER BY id;")
+    admin_rows = [
+        [r["id"], r["username"], r["password_hash"][:20] + "... (已安全雜湊)"]
+        for r in cursor.fetchall()
+    ]
+    print_table(
+        "0. 管理員資料表 (admin)",
+        ["編號 (PK)", "使用者帳號", "密碼雜湊值 (PBKDF2-SHA256)"],
+        admin_rows,
+        alignments=["center", "center", "left"],
+    )
+
     # 1. 驗證 customer 表
     cursor.execute("""
     SELECT customer_id, name, phone, address, created_date 
