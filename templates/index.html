@@ -309,9 +309,12 @@
         <header class="header-card">
             <div class="header-top">
                 <div class="brand-title">
-                    <h1>Hello World - SQLite 訂單管理系統</h1>
+                    <h1>📦 SQLite 企業訂單管理系統</h1>
                 </div>
                 <div class="auth-bar">
+                    <a href="http://127.0.0.1:8899/" target="_blank" class="btn btn-outline" title="開啟獨立的 Hello World 網頁">
+                        🌐 Hello World 網頁 (Port 8899) →
+                    </a>
                     {% if is_admin %}
                         <span class="pill pill-admin">👤 管理員：<strong>{{ session['admin'] }}</strong></span>
                         <a href="/admin/orders/new" class="btn btn-primary">➕ 新增訂單</a>

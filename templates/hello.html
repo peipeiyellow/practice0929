@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello World - Flask 一頁式網站 (Port 8899)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1e293b;
+            padding: 24px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(12px);
+            padding: 48px 36px;
+            border-radius: 20px;
+            box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            max-width: 520px;
+            width: 100%;
+            animation: fadeIn 0.6s ease-out;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .port-badge {
+            display: inline-block;
+            background: #ede9fe;
+            color: #6d28d9;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #0f172a;
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 1.15rem;
+            color: #475569;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn-interactive {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .btn-interactive:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-order-system {
+            background: #0f172a;
+            color: #fff;
+        }
+
+        .btn-order-system:hover {
+            background: #1e293b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.3);
+        }
+
+        .info-box {
+            padding: 18px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px dashed #cbd5e0;
+            font-size: 0.9rem;
+            color: #334155;
+            line-height: 1.7;
+            text-align: left;
+        }
+
+        .info-box p { margin-bottom: 4px; }
+        .info-box p:last-child { margin-bottom: 0; }
+
+        #clickCount {
+            font-weight: 700;
+            color: #e11d48;
+        }
+
+        #msg {
+            color: #4f46e5;
+            font-weight: 600;
+            min-height: 24px;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="port-badge">🌐 獨立運作服務 • Port 8899</div>
+        <h1>Hello, World!</h1>
+        <p class="subtitle">歡迎來到python製作的一頁式網站</p>
+        
+        <div class="btn-group">
+            <button class="btn btn-interactive" onclick="handleClick()">✨ 點擊互動體驗</button>
+            <a href="http://127.0.0.1:5000/" target="_blank" class="btn btn-order-system">
+                📦 前往「訂單系統」 (Port 5000) →
+            </a>
+        </div>
+
+        <div class="info-box">
+            <p>• 服務架構：<strong>Python Flask (Hello World 獨立網頁)</strong></p>
+            <p>• 監聽連接埠：<strong>Port 8899 (http://127.0.0.1:8899/)</strong></p>
+            <p>• 點擊次數：<span id="clickCount">0</span> 次</p>
+            <p id="msg"></p>
+        </div>
+    </div>
+
+    <script>
+        let count = 0;
+        const messages = [
+            "太棒了！Hello World 網站 (Port 8899) 運作非常順暢！",
+            "已成功與訂單系統 (Port 5000) 獨立拆分！",
+            "Flask 輕量且功能強大！",
+            "點擊上方黑色按鈕即可隨時切換至訂單系統！"
+        ];
+
+        function handleClick() {
+            count++;
+            document.getElementById('clickCount').textContent = count;
+            const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+            document.getElementById('msg').textContent = randomMsg;
+        }
+    </script>
+</body>
+</html>

@@ -13,11 +13,21 @@ class AppTestCase(unittest.TestCase):
         self.app.config["TESTING"] = True
         self.client = self.app.test_client()
 
-    def test_hello_world(self):
-        """測試首頁 HTTP 200 與 Hello World 文字"""
+    def test_order_system_home(self):
+        """測試訂單系統 (Port 5000) 首頁 HTTP 200 與 訂單管理系統 文字"""
         res = self.client.get("/")
         self.assertEqual(res.status_code, 200)
-        self.assertIn("Hello World", res.get_data(as_text=True))
+        self.assertIn("訂單管理系統", res.get_data(as_text=True))
+
+    def test_hello_world_app(self):
+        """測試獨立的 Hello World 網頁 (Port 8899) HTTP 200 與 Hello World 文字"""
+        from hello_app import app as hello_flask_app
+        hello_flask_app.config["TESTING"] = True
+        client = hello_flask_app.test_client()
+        res = client.get("/")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("Hello, World!", res.get_data(as_text=True))
+        self.assertIn("歡迎來到python製作的一頁式網站", res.get_data(as_text=True))
 
     def test_requirement_1_password_hashed_no_plaintext(self):
         """測試需求 1: 管理員密碼以 werkzeug 雜湊儲存，資料庫與登入頁絕無明碼"""
