@@ -42,12 +42,40 @@ def ensure_db():
 
 
 # ==========================================
-# 需求 2: 後台頁面登入 (session) 且角色為管理員 (admin) 權限驗證裝飾器
+# 需求 2: 後台所有頁面需登入 (session) 且角色為管理員 (admin) 才能進入
+# 採用全域請求攔截器 (before_request) + 專屬裝飾器 (admin_required) 雙層嚴格防護
 # ==========================================
+@app.before_request
+def enforce_admin_authentication():
+    """
+    全域後台權限管制：
+    任何未登入或角色非 admin 的請求，完全無法接觸後台任何頁面與資料，
+    一律強制 302 重導向至 /login 登入頁面（API 則回傳 401 Unauthorized）。
+    """
+    # 僅允許登入頁、登出功能與靜態資源公開存取
+    whitelist_endpoints = {"login", "logout", "static"}
+    if request.endpoint in whitelist_endpoints or (request.path and request.path.startswith("/static")):
+        return None
+
+    # 嚴格檢查 Session：必須存在管理員帳號且角色必須為 'admin'
+    is_logged_in = bool(session.get("admin"))
+    is_admin_role = (session.get("role") == "admin")
+
+    if not (is_logged_in and is_admin_role):
+        # 若為 API 請求，回傳 401
+        if request.path.startswith("/api/"):
+            return jsonify({
+                "status": "error",
+                "message": "未授權：後台所有介面均需登入 (session) 且角色為管理員才能存取",
+            }), 401
+        # 網頁請求一律強制重導向至登入頁
+        return redirect(url_for("login", next=request.url))
+
+
 def admin_required(f):
+    """個別路由裝飾器雙層保護"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # 嚴格驗證 session 登入狀態與角色為 admin
         if not session.get("admin") or session.get("role") != "admin":
             return redirect(url_for("login", next=request.url))
         return f(*args, **kwargs)
@@ -55,10 +83,11 @@ def admin_required(f):
 
 
 # ==========================================
-# 首頁總覽
+# 首頁總覽 (後台核心儀表板，需登入且角色為 admin)
 # ==========================================
 @app.route("/")
 @app.route("/orders")
+@admin_required
 def index():
     """總覽儀表板面板：呈現各資料表與彙整統計 (全參數化查詢)"""
     ensure_db()
@@ -125,8 +154,6 @@ def index():
 
     conn.close()
 
-    is_admin = bool(session.get("admin") and session.get("role") == "admin")
-
     return render_template(
         "index.html",
         customers=customers,
@@ -136,7 +163,7 @@ def index():
         order_summary=order_summary,
         total_revenue=total_revenue,
         total_qty=total_qty,
-        is_admin=is_admin,
+        is_admin=True,
     )
 
 
@@ -146,6 +173,10 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     ensure_db()
+    # 已登入且角色為 admin 者直接進入後台
+    if session.get("admin") and session.get("role") == "admin":
+        return redirect(url_for("index"))
+
     error = None
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -160,10 +191,16 @@ def login():
 
         # 需求 1: 使用 werkzeug check_password_hash 驗證雜湊，不出現明碼比對
         if admin_row and check_password_hash(admin_row["password_hash"], password):
-            session["admin"] = admin_row["username"]
-            session["role"] = admin_row["role"]
-            next_url = request.args.get("next") or url_for("index")
-            return redirect(next_url)
+            # 需求 2: 嚴格驗證角色是否為 admin
+            if admin_row["role"] != "admin":
+                error = "權限不足：您的帳號並非管理員 (admin) 角色"
+            else:
+                session["admin"] = admin_row["username"]
+                session["role"] = admin_row["role"]
+                next_url = request.args.get("next")
+                if not next_url or "/login" in next_url:
+                    next_url = url_for("index")
+                return redirect(next_url)
         else:
             error = "帳號或密碼錯誤，請重新輸入"
 
@@ -172,9 +209,8 @@ def login():
 
 @app.route("/logout")
 def logout():
-    session.pop("admin", None)
-    session.pop("role", None)
-    return redirect(url_for("index"))
+    session.clear()
+    return redirect(url_for("login"))
 
 
 # ==========================================

@@ -108,7 +108,7 @@ def seed_data(conn):
         else:
             hashed_pw = os.environ.get(
                 "ADMIN_PASSWORD_HASH",
-                "scrypt:32768:8:1$d5QBLNflP6c9zJ9e$0364d990ad31238fb0ee9638c03565cf118d79a295c5553ee24f74f7ea4cb75d1f11a842b0124ad721d60ec693bc2fdf212b485fc8488e0f6fc413e17d057a6e"
+                "scrypt:32768:8:1$nB9CjC0pnemJxnkP$8343cf42260e84d36d71db74c79238b9101a08209893e624e2607edabe5cbc8c8d772d3546e085b87b196ba62357125d7d05bdc85dea6468d86b9cecda5f7236"
             )
         cursor.execute(
             "INSERT INTO admin (username, password_hash, role) VALUES (?, ?, ?);",
