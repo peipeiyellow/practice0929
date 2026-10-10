@@ -79,12 +79,12 @@
         .btn-submit:hover { background: var(--primary-dark); }
         .hint-box {
             margin-top: 24px;
-            padding: 12px;
+            padding: 14px;
             background: var(--slate-100);
             border-radius: 8px;
             font-size: 0.8rem;
             color: var(--slate-700);
-            line-height: 1.5;
+            line-height: 1.6;
         }
         .back-link {
             display: block;
@@ -100,7 +100,7 @@
 <body>
     <div class="login-card">
         <h2>管理員登入</h2>
-        <p class="sub">登入後即可維護客戶、商品及建立新訂單</p>
+        <p class="sub">後台所有維護管理功能均需以管理員角色登入</p>
 
         {% if error %}
         <div class="alert-error">⚠️ {{ error }}</div>
@@ -108,20 +108,20 @@
 
         <form method="POST" action="/login">
             <div class="form-group">
-                <label for="username">管理員帳號 (Username)</label>
-                <input type="text" id="username" name="username" value="admin" required autofocus>
+                <label for="username">管理員帳號</label>
+                <input type="text" id="username" name="username" placeholder="請輸入帳號 (如 admin)" required autofocus>
             </div>
             <div class="form-group">
-                <label for="password">登入密碼 (Password)</label>
-                <input type="password" id="password" name="password" value="admin123" required>
+                <label for="password">登入密碼</label>
+                <input type="password" id="password" name="password" placeholder="請輸入密碼" required autocomplete="current-password">
             </div>
             <button type="submit" class="btn-submit">立即登入</button>
         </form>
 
         <div class="hint-box">
-            🔑 <strong>預設管理員測試帳號：</strong><br>
-            • 帳號：<code>admin</code><br>
-            • 密碼：<code>admin123</code>
+            🛡️ <strong>安全保護規範（需求 1）：</strong><br>
+            • 管理員密碼均以 <code>Werkzeug</code> PBKDF2/scrypt 演算法安全雜湊儲存。<br>
+            • 程式碼、資料庫與頁面畫面<strong>絕不出現明碼密碼</strong>。
         </div>
 
         <a href="/" class="back-link">← 返回首頁總覽</a>

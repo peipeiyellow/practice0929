@@ -180,14 +180,14 @@
 <body>
     <div class="container">
         <div class="invoice-card">
-            <!-- 抬頭與訂單編號 -->
+            <!-- 抬頭與訂單編號 (SO+數字) -->
             <div class="invoice-top">
                 <div class="company-info">
                     <h1>📦 出貨明細單 (Packing Slip)</h1>
                     <p>SQLite 企業訂單管理系統 • 官方正式出貨單據</p>
                 </div>
                 <div class="order-meta">
-                    <div class="order-num">訂單編號 #{{ order.order_id }}</div>
+                    <div class="order-num">訂單編號：{{ order.order_code }}</div>
                     <div class="order-date">下單日期：{{ order.order_date }}</div>
                     <div>
                         業務人員：<strong>{{ order.salesperson }}</strong>

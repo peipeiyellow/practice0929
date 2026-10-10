@@ -27,12 +27,19 @@ def init_db(db_path=DATABASE):
     conn = get_db(db_path)
     cursor = conn.cursor()
 
-    # 0. 管理員資料表 admin (id PK, username UNIQUE, password_hash)
+    cursor.execute("DROP TABLE IF EXISTS order_item;")
+    cursor.execute("DROP TABLE IF EXISTS orders;")
+    cursor.execute("DROP TABLE IF EXISTS product;")
+    cursor.execute("DROP TABLE IF EXISTS customer;")
+    cursor.execute("DROP TABLE IF EXISTS admin;")
+
+    # 0. 管理員資料表 admin (含 role 角色欄位)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS admin (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'admin'
     );
     """)
 
@@ -58,10 +65,11 @@ def init_db(db_path=DATABASE):
     );
     """)
 
-    # 3. 訂單資料表 orders (訂單編號 PK、客戶編號 FK、訂單日期、狀態、業務人員)
+    # 3. 訂單資料表 orders (order_code 格式約束: SO+數字)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS orders (
         order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_code TEXT UNIQUE NOT NULL CHECK (order_code GLOB 'SO[0-9]*' AND length(order_code) >= 3),
         customer_id INTEGER NOT NULL,
         order_date TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT '處理中',
@@ -70,13 +78,12 @@ def init_db(db_path=DATABASE):
     );
     """)
 
-    # 4. 訂單明細資料表 order_item (訂單編號 FK、商品編號 FK、數量、單價)
-    #    複合主鍵: (訂單編號, 商品編號)
+    # 4. 訂單明細資料表 order_item (數量嚴格正整數 CHECK)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS order_item (
         order_id INTEGER NOT NULL,
         product_id INTEGER NOT NULL,
-        quantity INTEGER NOT NULL CHECK (quantity > 0),
+        quantity INTEGER NOT NULL CHECK (quantity > 0 AND typeof(quantity) = 'integer'),
         unit_price REAL NOT NULL CHECK (unit_price >= 0),
         PRIMARY KEY (order_id, product_id),
         FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
@@ -90,15 +97,16 @@ def init_db(db_path=DATABASE):
 
 
 def seed_data(conn):
-    """插入繁體中文測試資料與預設管理員帳號"""
+    """插入繁體中文測試資料與管理員帳號"""
     cursor = conn.cursor()
 
-    # 0. 建立預設管理員 (admin / admin123)
+    # 0. 建立管理員 (雜湊儲存，不顯明碼)
     cursor.execute("SELECT id FROM admin WHERE username = ?", ("admin",))
     if not cursor.fetchone():
+        default_pw = os.environ.get("ADMIN_PASSWORD", "admin123")
         cursor.execute(
-            "INSERT INTO admin (username, password_hash) VALUES (?, ?);",
-            ("admin", generate_password_hash("admin123")),
+            "INSERT INTO admin (username, password_hash, role) VALUES (?, ?, ?);",
+            ("admin", generate_password_hash(default_pw), "admin"),
         )
 
     # 1. 客戶資料 5 筆
@@ -131,22 +139,22 @@ def seed_data(conn):
             products,
         )
 
-    # 3. 訂單資料 5 筆
+    # 3. 訂單資料 5 筆 (SO+數字)
     cursor.execute("SELECT COUNT(*) FROM orders;")
     if cursor.fetchone()[0] == 0:
         orders = [
-            (1, "2026-10-01", "已完成", "陳冠宇"),
-            (2, "2026-10-03", "已出貨", "林雅婷"),
-            (3, "2026-10-05", "處理中", "張家豪"),
-            (4, "2026-10-07", "處理中", "王怡君"),
-            (5, "2026-10-09", "已取消", "陳冠宇"),
+            ("SO0001", 1, "2026-10-01", "已完成", "陳冠宇"),
+            ("SO0002", 2, "2026-10-03", "已出貨", "林雅婷"),
+            ("SO0003", 3, "2026-10-05", "處理中", "張家豪"),
+            ("SO0004", 4, "2026-10-07", "處理中", "王怡君"),
+            ("SO0005", 5, "2026-10-09", "已取消", "陳冠宇"),
         ]
         cursor.executemany(
-            "INSERT INTO orders (customer_id, order_date, status, salesperson) VALUES (?, ?, ?, ?);",
+            "INSERT INTO orders (order_code, customer_id, order_date, status, salesperson) VALUES (?, ?, ?, ?, ?);",
             orders,
         )
 
-        # 4. 訂單明細資料 (保存下單時歷史單價，且包含多項商品之案例)
+        # 4. 訂單明細資料
         order_items = [
             (1, 1, 2, 45900.0),
             (1, 3, 5, 3280.0),
@@ -169,4 +177,4 @@ def seed_data(conn):
 
 if __name__ == "__main__":
     init_db()
-    print("orders.db 資料庫初始化完成 (預設管理員 admin / admin123)。")
+    print("orders.db 資料庫初始化完成 (管理員密碼雜湊儲存)。")

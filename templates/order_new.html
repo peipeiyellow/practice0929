@@ -17,6 +17,7 @@
             --slate-200: #e2e8f0;
             --slate-100: #f1f5f9;
             --slate-50: #f8fafc;
+            --danger: #ef4444;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -26,7 +27,7 @@
             color: #1e293b;
             padding: 32px 16px;
         }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 920px; margin: 0 auto; }
         .form-card {
             background: #fff;
             border-radius: 16px;
@@ -70,45 +71,77 @@
             background: #fff;
         }
         select:focus, input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
-        .product-section {
-            margin-top: 24px;
+        .helper-text { font-size: 0.78rem; color: var(--slate-500); margin-top: 4px; }
+
+        /* 商品下拉選單項目清單 */
+        .items-section {
+            background: var(--slate-50);
             border: 1px solid var(--slate-200);
             border-radius: 12px;
             padding: 20px;
-            background: var(--slate-50);
+            margin-top: 24px;
         }
-        .section-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--slate-900);
-            margin-bottom: 8px;
+        .section-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 14px;
         }
-        .product-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 12px;
+        .item-row {
+            display: grid;
+            grid-template-columns: 1fr 120px 110px 42px;
+            gap: 12px;
+            align-items: center;
             background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid var(--slate-200);
-        }
-        .product-table th, .product-table td {
             padding: 12px 14px;
-            text-align: left;
-            border-bottom: 1px solid var(--slate-200);
-            font-size: 0.9rem;
+            border-radius: 8px;
+            border: 1px solid var(--slate-200);
+            margin-bottom: 10px;
         }
-        .product-table th { background: var(--slate-100); font-weight: 600; color: var(--slate-700); }
-        .product-table tr:hover { background: #f8fafc; }
-        .qty-input { width: 90px !important; text-align: center; }
-        .total-summary {
+        @media (max-width: 640px) {
+            .item-row { grid-template-columns: 1fr; }
+        }
+        .row-subtotal {
+            font-weight: 700;
+            color: #047857;
+            text-align: right;
+            font-size: 0.95rem;
+        }
+        .btn-remove {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+            border-radius: 6px;
+            height: 38px;
+            width: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-remove:hover { background: #fecaca; }
+
+        .btn-add-item {
+            background: #eef2ff;
+            color: var(--primary);
+            border: 1px dashed var(--primary);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+            transition: all 0.2s;
+        }
+        .btn-add-item:hover { background: #e0e7ff; }
+
+        .total-box {
             background: #eef2ff;
             border-radius: 8px;
             padding: 16px 20px;
-            margin-top: 20px;
+            margin-top: 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -116,7 +149,8 @@
             font-weight: 700;
             color: var(--slate-900);
         }
-        .total-price { color: #4f46e5; font-size: 1.4rem; }
+        .total-amount { color: var(--primary); font-size: 1.5rem; }
+
         .btn-bar { display: flex; gap: 12px; margin-top: 28px; justify-content: flex-end; }
         .btn {
             padding: 12px 24px;
@@ -132,22 +166,16 @@
         .btn-primary:hover { background: var(--primary-dark); }
         .btn-secondary { background: var(--slate-100); color: var(--slate-700); border: 1px solid var(--slate-200); }
         .btn-secondary:hover { background: var(--slate-200); }
-        .note-tag {
-            font-size: 0.75rem;
-            background: #dbeafe;
-            color: #1e40af;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: 600;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="form-card">
             <div class="form-header">
-                <h2>➕ 建立新訂單 (支援多項商品勾選)</h2>
-                <span class="note-tag">💾 自動鎖定並保存下單當下的歷史單價</span>
+                <h2>➕ 建立新訂單 (管理員後台)</h2>
+                <span style="font-size:0.8rem; background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:9999px; font-weight:600;">
+                    🛡️ 三層正整數與 SO+數字 驗證保護
+                </span>
             </div>
 
             {% if error %}
@@ -155,35 +183,44 @@
             {% endif %}
 
             <form method="POST" action="/admin/orders/new" id="orderForm">
-                <!-- 1. 客戶下拉選單 (需求 6) -->
-                <div class="form-group">
-                    <label for="customer_id">選擇客戶 (下拉選單) <span style="color:#ef4444;">*</span></label>
-                    <select name="customer_id" id="customer_id" required>
-                        <option value="" disabled selected>-- 請選擇客戶 --</option>
-                        {% for c in customers %}
-                        <option value="{{ c.customer_id }}">
-                            [ID {{ c.customer_id }}] {{ c.name }} (電話: {{ c.phone }})
-                        </option>
-                        {% endfor %}
-                    </select>
+                <div class="grid-2">
+                    <!-- 需求 4: 訂單編號加上 SO+數字 的格式驗證 -->
+                    <div class="form-group">
+                        <label for="order_code">訂單編號 (格式: SO+數字) <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="order_code" name="order_code" value="{{ next_code }}"
+                               placeholder="例如: SO0006" pattern="^SO\d+$" required
+                               title="訂單編號必須以 SO 開頭並後接數字 (例如: SO0006)">
+                        <div class="helper-text">格式規定：必須為 <code>SO+數字</code>（前端、後端、資料庫 CHECK 驗證）</div>
+                    </div>
+
+                    <!-- 需求 4: 客戶改為下拉選單 -->
+                    <div class="form-group">
+                        <label for="customer_id">客戶選擇 (下拉選單) <span style="color:#ef4444;">*</span></label>
+                        <select name="customer_id" id="customer_id" required>
+                            <option value="" disabled selected>-- 請選擇客戶 --</option>
+                            {% for c in customers %}
+                            <option value="{{ c.customer_id }}">
+                                [ID {{ c.customer_id }}] {{ c.name }} (電話: {{ c.phone }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
 
                 <div class="grid-2">
-                    <!-- 訂單日期 -->
                     <div class="form-group">
                         <label for="order_date">訂單日期 <span style="color:#ef4444;">*</span></label>
                         <input type="date" id="order_date" name="order_date" value="{{ today_date }}" required>
                     </div>
 
-                    <!-- 業務人員 -->
                     <div class="form-group">
                         <label for="salesperson">業務人員 <span style="color:#ef4444;">*</span></label>
-                        <input type="text" id="salesperson" name="salesperson" value="陳冠宇" placeholder="請輸入業務負責人" required>
+                        <input type="text" id="salesperson" name="salesperson" value="陳冠宇" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="status">初始狀態 (需求 8)</label>
+                    <label for="status">訂單狀態</label>
                     <select name="status" id="status">
                         <option value="處理中" selected>處理中</option>
                         <option value="已出貨">已出貨</option>
@@ -192,102 +229,173 @@
                     </select>
                 </div>
 
-                <!-- 2. 商品多選與數量 (需求 6 & 7) -->
-                <div class="product-section">
-                    <div class="section-title">
-                        <span>📦 選擇訂購商品 (可一次勾選多項並填數量)</span>
-                        <span style="font-size:0.8rem; font-weight:normal; color:#64748b;">至少勾選 1 項商品</span>
+                <!-- 需求 4 & 5: 商品改為下拉選單，數量前端、後端、資料庫 CHECK 三層阻擋 -->
+                <div class="items-section">
+                    <div class="section-top">
+                        <span style="font-weight:700; color:var(--slate-900);">📦 訂購商品品項 (商品下拉選單 + 數量正整數)</span>
+                        <span style="font-size:0.8rem; color:var(--slate-500);">可加選多項商品</span>
                     </div>
 
-                    <div style="overflow-x:auto;">
-                        <table class="product-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px; text-align:center;">勾選</th>
-                                    <th>商品名稱</th>
-                                    <th>分類</th>
-                                    <th style="text-align:right;">現時單價 (存入歷史價)</th>
-                                    <th style="text-align:center;">目前庫存</th>
-                                    <th style="text-align:center; width:130px;">購買數量 (CHECK > 0)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for p in products %}
-                                <tr>
-                                    <td style="text-align:center;">
-                                        <input type="checkbox" name="product_ids" value="{{ p.product_id }}"
-                                               id="prod_{{ p.product_id }}"
-                                               data-price="{{ p.price }}"
-                                               onchange="handleCheckChange('{{ p.product_id }}')">
-                                    </td>
-                                    <td>
-                                        <label for="prod_{{ p.product_id }}" style="margin:0; cursor:pointer; font-weight:600;">
-                                            {{ p.name }}
-                                        </label>
-                                    </td>
-                                    <td><span style="font-size:0.8rem; color:#64748b;">{{ p.category }}</span></td>
-                                    <td style="text-align:right; font-weight:600; color:#047857;">
-                                        ${{ "{:,.0f}".format(p.price) }}
-                                    </td>
-                                    <td style="text-align:center;">{{ p.stock }}</td>
-                                    <td style="text-align:center;">
-                                        <input type="number" name="quantity_{{ p.product_id }}" id="qty_{{ p.product_id }}"
-                                               class="qty-input" min="1" max="{{ p.stock }}" value="1"
-                                               disabled oninput="updateTotal()">
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div id="itemsContainer">
+                        <!-- 第一筆商品項目列 -->
+                        <div class="item-row">
+                            <div>
+                                <select name="product_id" class="product-select" required onchange="onProductChange(this)">
+                                    <option value="" disabled selected>-- 請下拉選擇商品 --</option>
+                                    {% for p in products %}
+                                    <option value="{{ p.product_id }}" data-price="{{ p.price }}" data-stock="{{ p.stock }}">
+                                        {{ p.name }} - ${{ "{:,.0f}".format(p.price) }} (庫存: {{ p.stock }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <!-- 需求 5: 數量必須是正整數 (第 1 層：前端 HTML5 min=1, step=1 阻擋) -->
+                                <input type="number" name="quantity" class="qty-input" min="1" step="1" value="1"
+                                       required placeholder="數量" oninput="recalculateTotal()" title="數量必須為大於 0 的正整數">
+                            </div>
+                            <div class="row-subtotal">$0</div>
+                            <div>
+                                <button type="button" class="btn-remove" onclick="removeRow(this)" title="移除此項">✕</button>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- 即時試算總額 -->
-                    <div class="total-summary">
-                        <span>預估訂單總金額 (<span id="selectedCount">0</span> 項商品):</span>
-                        <span class="total-price" id="calcTotal">$0</span>
+                    <button type="button" class="btn-add-item" onclick="addItemRow()">➕ 增加商品品項 (加選另一項商品)</button>
+
+                    <div class="total-box">
+                        <span>預估訂單總金額 (<span id="totalItemsCount">1</span> 項商品)：</span>
+                        <span class="total-amount" id="grandTotal">$0</span>
                     </div>
                 </div>
 
                 <div class="btn-bar">
                     <a href="/" class="btn btn-secondary">取消並返回</a>
-                    <button type="submit" class="btn btn-primary">✅ 建立訂單並儲存明細</button>
+                    <button type="submit" class="btn btn-primary">✅ 建立訂單並儲存成交單價</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- 範本 HTML 供 JS 動態複製新增品項列 -->
+    <template id="rowTemplate">
+        <div class="item-row">
+            <div>
+                <select name="product_id" class="product-select" required onchange="onProductChange(this)">
+                    <option value="" disabled selected>-- 請下拉選擇商品 --</option>
+                    {% for p in products %}
+                    <option value="{{ p.product_id }}" data-price="{{ p.price }}" data-stock="{{ p.stock }}">
+                        {{ p.name }} - ${{ "{:,.0f}".format(p.price) }} (庫存: {{ p.stock }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <input type="number" name="quantity" class="qty-input" min="1" step="1" value="1"
+                       required placeholder="數量" oninput="recalculateTotal()" title="數量必須為大於 0 的正整數">
+            </div>
+            <div class="row-subtotal">$0</div>
+            <div>
+                <button type="button" class="btn-remove" onclick="removeRow(this)" title="移除此項">✕</button>
+            </div>
+        </div>
+    </template>
+
     <script>
-        function handleCheckChange(pid) {
-            const cb = document.getElementById('prod_' + pid);
-            const qty = document.getElementById('qty_' + pid);
-            qty.disabled = !cb.checked;
-            if (cb.checked && (!qty.value || parseInt(qty.value) < 1)) {
-                qty.value = 1;
-            }
-            updateTotal();
+        function onProductChange(selectElem) {
+            recalculateTotal();
         }
 
-        function updateTotal() {
+        function addItemRow() {
+            const template = document.getElementById('rowTemplate');
+            const clone = template.content.cloneNode(true);
+            document.getElementById('itemsContainer').appendChild(clone);
+            recalculateTotal();
+        }
+
+        function removeRow(btn) {
+            const container = document.getElementById('itemsContainer');
+            const rows = container.querySelectorAll('.item-row');
+            if (rows.length <= 1) {
+                alert('訂單至少必須保留一項商品！');
+                return;
+            }
+            btn.closest('.item-row').remove();
+            recalculateTotal();
+        }
+
+        function recalculateTotal() {
             let total = 0;
             let count = 0;
-            const checkboxes = document.querySelectorAll('input[name="product_ids"]:checked');
-            checkboxes.forEach(cb => {
-                const pid = cb.value;
-                const price = parseFloat(cb.dataset.price) || 0;
-                const qtyInput = document.getElementById('qty_' + pid);
-                const quantity = parseInt(qtyInput.value) || 0;
-                total += price * quantity;
-                count++;
+            const rows = document.querySelectorAll('#itemsContainer .item-row');
+            rows.forEach(row => {
+                const sel = row.querySelector('.product-select');
+                const opt = sel.options[sel.selectedIndex];
+                const qtyInput = row.querySelector('.qty-input');
+                const subtotalElem = row.querySelector('.row-subtotal');
+
+                const price = (opt && opt.dataset.price) ? parseFloat(opt.dataset.price) : 0;
+                const qty = parseInt(qtyInput.value) || 0;
+                const subtotal = price * qty;
+
+                subtotalElem.textContent = '$' + subtotal.toLocaleString('en-US');
+                if (opt && opt.value) {
+                    total += subtotal;
+                    count++;
+                }
             });
-            document.getElementById('selectedCount').textContent = count;
-            document.getElementById('calcTotal').textContent = '$' + total.toLocaleString('en-US');
+
+            document.getElementById('totalItemsCount').textContent = count;
+            document.getElementById('grandTotal').textContent = '$' + total.toLocaleString('en-US');
         }
 
+        // 需求 4 & 5: 前端表單送出嚴格驗證 (SO+數字 格式 & 數量必須為正整數)
         document.getElementById('orderForm').addEventListener('submit', function(e) {
-            const checked = document.querySelectorAll('input[name="product_ids"]:checked');
-            if (checked.length === 0) {
+            // 1. 驗證訂單編號 SO+數字
+            const orderCode = document.getElementById('order_code').value.trim();
+            if (!/^SO\d+$/.test(orderCode)) {
                 e.preventDefault();
-                alert('請至少勾選一項商品！');
+                alert('【格式錯誤】訂單編號必須為「SO+數字」（例如：SO0006）！');
+                document.getElementById('order_code').focus();
+                return false;
+            }
+
+            // 2. 驗證商品品項與數量正整數 (第 1 層前端阻擋)
+            const rows = document.querySelectorAll('#itemsContainer .item-row');
+            if (rows.length === 0) {
+                e.preventDefault();
+                alert('請至少新增一項商品！');
+                return false;
+            }
+
+            const selectedPids = new Set();
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const sel = row.querySelector('.product-select');
+                if (!sel.value) {
+                    e.preventDefault();
+                    alert(`請為第 ${i + 1} 個品項選擇商品！`);
+                    sel.focus();
+                    return false;
+                }
+
+                if (selectedPids.has(sel.value)) {
+                    e.preventDefault();
+                    alert(`商品不可重複選擇！請直接修改購買數量。`);
+                    sel.focus();
+                    return false;
+                }
+                selectedPids.add(sel.value);
+
+                const qtyVal = row.querySelector('.qty-input').value.trim();
+                const num = Number(qtyVal);
+                // 嚴格檢查：必須是整數、大於 0、不可有小數點
+                if (!Number.isInteger(num) || num <= 0 || qtyVal.includes('.')) {
+                    e.preventDefault();
+                    alert(`【數量錯誤】第 ${i + 1} 項商品的數量必須為「大於 0 的正整數」（不可為 0、負數或小數）！`);
+                    row.querySelector('.qty-input').focus();
+                    return false;
+                }
             }
         });
     </script>

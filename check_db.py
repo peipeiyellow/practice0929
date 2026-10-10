@@ -51,7 +51,6 @@ def print_table(title, headers, rows, alignments=None):
     if alignments is None:
         alignments = ["left"] * num_cols
 
-    # 計算每欄最小所需寬度
     col_widths = [get_str_width(h) for h in headers]
     for row in rows:
         for i, val in enumerate(row):
@@ -59,14 +58,11 @@ def print_table(title, headers, rows, alignments=None):
             if w > col_widths[i]:
                 col_widths[i] = w
 
-    # 加上內距 (padding)
     col_widths = [w + 2 for w in col_widths]
 
-    # 分隔線
     top_sep = "+" + "+".join("-" * w for w in col_widths) + "+"
     print(top_sep)
 
-    # 標題列
     header_line = "|" + "|".join(
         pad_str(f" {headers[i]} ", col_widths[i], "center")
         for i in range(num_cols)
@@ -76,7 +72,6 @@ def print_table(title, headers, rows, alignments=None):
     mid_sep = "+" + "+".join("=" * w for w in col_widths) + "+"
     print(mid_sep)
 
-    # 資料列
     for row in rows:
         row_line = "|" + "|".join(
             pad_str(f" {row[i]} ", col_widths[i], alignments[i])
@@ -89,7 +84,7 @@ def print_table(title, headers, rows, alignments=None):
 
 
 def check_database(db_path=DB_PATH):
-    """查詢並列印 orders.db 各資料表內容"""
+    """查詢並列印 orders.db 各資料表內容 (全參數化查詢)"""
     if not os.path.exists(db_path):
         print(f"[錯誤] 資料庫檔案不存在: {db_path}，請先執行 create_db.py 建立資料庫。")
         return
@@ -102,25 +97,21 @@ def check_database(db_path=DB_PATH):
     print(f"       SQLite 資料庫內容驗證工具: {os.path.basename(db_path)}")
     print("#" * 60)
 
-    # 0. 驗證 admin 表
-    cursor.execute("SELECT id, username, password_hash FROM admin ORDER BY id;")
+    # 0. 驗證 admin 表 (密碼全雜湊，無明碼)
+    cursor.execute("SELECT id, username, role, password_hash FROM admin ORDER BY id;")
     admin_rows = [
-        [r["id"], r["username"], r["password_hash"][:20] + "... (已安全雜湊)"]
+        [r["id"], r["username"], r["role"], r["password_hash"][:24] + "... (已安全雜湊)"]
         for r in cursor.fetchall()
     ]
     print_table(
-        "0. 管理員資料表 (admin)",
-        ["編號 (PK)", "使用者帳號", "密碼雜湊值 (PBKDF2-SHA256)"],
+        "0. 管理員資料表 (admin) - Werkzeug 密碼雜湊保護",
+        ["編號 (PK)", "帳號", "角色 (Role)", "密碼雜湊 (PBKDF2/scrypt)"],
         admin_rows,
-        alignments=["center", "center", "left"],
+        alignments=["center", "center", "center", "left"],
     )
 
     # 1. 驗證 customer 表
-    cursor.execute("""
-    SELECT customer_id, name, phone, address, created_date 
-    FROM customer 
-    ORDER BY customer_id;
-    """)
+    cursor.execute("SELECT customer_id, name, phone, address, created_date FROM customer ORDER BY customer_id;")
     cust_rows = [
         [r["customer_id"], r["name"], r["phone"], r["address"], r["created_date"]]
         for r in cursor.fetchall()
@@ -133,11 +124,7 @@ def check_database(db_path=DB_PATH):
     )
 
     # 2. 驗證 product 表
-    cursor.execute("""
-    SELECT product_id, name, price, stock, category 
-    FROM product 
-    ORDER BY product_id;
-    """)
+    cursor.execute("SELECT product_id, name, price, stock, category FROM product ORDER BY product_id;")
     prod_rows = [
         [r["product_id"], r["name"], f"${r['price']:,.0f}", r["stock"], r["category"]]
         for r in cursor.fetchall()
@@ -149,53 +136,54 @@ def check_database(db_path=DB_PATH):
         alignments=["center", "left", "right", "right", "center"],
     )
 
-    # 3. 驗證 orders 表
+    # 3. 驗證 orders 表 (含 SO+數字 格式)
     cursor.execute("""
-    SELECT o.order_id, o.customer_id, c.name AS cust_name, o.order_date, o.status, o.salesperson
+    SELECT o.order_id, o.order_code, o.customer_id, c.name AS cust_name, o.order_date, o.status, o.salesperson
     FROM orders o
     JOIN customer c ON o.customer_id = c.customer_id
     ORDER BY o.order_id;
     """)
     order_rows = [
-        [r["order_id"], f"{r['customer_id']} ({r['cust_name']})", r["order_date"], r["status"], r["salesperson"]]
+        [r["order_id"], r["order_code"], f"{r['customer_id']} ({r['cust_name']})", r["order_date"], r["status"], r["salesperson"]]
         for r in cursor.fetchall()
     ]
     print_table(
-        "3. 訂單資料表 (orders)",
-        ["訂單編號 (PK)", "客戶 (FK)", "訂單日期", "狀態", "業務人員"],
+        "3. 訂單資料表 (orders) - 格式驗證: SO+數字",
+        ["主鍵 (PK)", "訂單編號 (SO+數字)", "客戶 (FK)", "訂單日期", "狀態", "業務人員"],
         order_rows,
-        alignments=["center", "left", "center", "center", "center"],
+        alignments=["center", "center", "left", "center", "center", "center"],
     )
 
-    # 4. 驗證 order_item 表 (複合主鍵: order_id + product_id)
+    # 4. 驗證 order_item 表 (複合主鍵，數量嚴格正整數)
     cursor.execute("""
-    SELECT oi.order_id, oi.product_id, p.name AS prod_name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS subtotal
+    SELECT oi.order_id, o.order_code, oi.product_id, p.name AS prod_name, oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) AS subtotal
     FROM order_item oi
+    JOIN orders o ON oi.order_id = o.order_id
     JOIN product p ON oi.product_id = p.product_id
     ORDER BY oi.order_id, oi.product_id;
     """)
     item_rows = [
         [
-            r["order_id"],
+            r["order_code"],
             r["product_id"],
             r["prod_name"],
-            r["quantity"],
+            f"{r['quantity']} (整數)",
             f"${r['unit_price']:,.0f}",
             f"${r['subtotal']:,.0f}",
         ]
         for r in cursor.fetchall()
     ]
     print_table(
-        "4. 訂單明細資料表 (order_item) - 複合主鍵: [訂單編號, 商品編號]",
-        ["訂單編號 (FK)", "商品編號 (FK)", "商品名稱", "數量", "歷史單價", "小計金額"],
+        "4. 訂單明細資料表 (order_item) - 複合主鍵: [訂單編號, 商品編號] | 數量正整數",
+        ["訂單編號 (FK)", "商品編號 (FK)", "商品名稱", "數量 (正整數)", "成交歷史單價", "小計金額"],
         item_rows,
         alignments=["center", "center", "left", "right", "right", "right"],
     )
 
-    # 5. 彙整關聯報表 (多項商品案例展示與訂單總額)
+    # 5. 彙整報表
     cursor.execute("""
     SELECT 
-        o.order_id,
+        o.order_code,
         c.name AS customer_name,
         o.order_date,
         o.salesperson,
@@ -211,7 +199,7 @@ def check_database(db_path=DB_PATH):
     """)
     summary_rows = [
         [
-            r["order_id"],
+            r["order_code"],
             r["customer_name"],
             r["order_date"],
             r["salesperson"],
@@ -223,7 +211,7 @@ def check_database(db_path=DB_PATH):
         for r in cursor.fetchall()
     ]
     print_table(
-        "★ 訂單與明細彙整驗證 (含多項商品案例與訂單總計)",
+        "★ 訂單與明細彙整驗證 (SO編號與多項商品統計)",
         ["訂單編號", "客戶名稱", "下單日期", "業務員", "狀態", "商品品項數", "總件數", "訂單總額"],
         summary_rows,
         alignments=["center", "left", "center", "center", "center", "center", "right", "right"],

@@ -388,7 +388,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th class="col-center">訂單編號 (PK)</th>
+                                <th class="col-center">訂單編號 (SO+數字)</th>
                                 <th>客戶名稱</th>
                                 <th class="col-center">下單日期</th>
                                 <th class="col-center">業務負責人</th>
@@ -402,7 +402,7 @@
                         <tbody>
                             {% for row in order_summary %}
                             <tr>
-                                <td class="col-center text-bold text-mono">#{{ row.order_id }}</td>
+                                <td class="col-center text-bold text-mono" style="color:var(--primary);">{{ row.order_code }}</td>
                                 <td class="text-bold">{{ row.customer_name }}</td>
                                 <td class="col-center text-mono">{{ row.order_date }}</td>
                                 <td class="col-center">{{ row.salesperson }}</td>
@@ -427,9 +427,9 @@
                                     </form>
                                 </td>
                                 <td class="col-center">
-                                    <!-- 需求 9: 專屬頁面 /order/<id> -->
-                                    <a href="/order/{{ row.order_id }}" class="btn btn-outline" style="padding:4px 10px; font-size:0.8rem;">
-                                        📦 /order/{{ row.order_id }} 出貨單 & QR Code
+                                    <!-- 需求 9: 專屬頁面 /order/<order_code> -->
+                                    <a href="/order/{{ row.order_code }}" class="btn btn-outline" style="padding:4px 10px; font-size:0.8rem;">
+                                        📦 /order/{{ row.order_code }} 出貨單 & QR Code
                                     </a>
                                 </td>
                                 {% if is_admin %}
