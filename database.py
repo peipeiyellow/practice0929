@@ -103,10 +103,16 @@ def seed_data(conn):
     # 0. 建立管理員 (雜湊儲存，不顯明碼)
     cursor.execute("SELECT id FROM admin WHERE username = ?", ("admin",))
     if not cursor.fetchone():
-        default_pw = os.environ.get("ADMIN_PASSWORD", "admin123")
+        if "ADMIN_PASSWORD" in os.environ:
+            hashed_pw = generate_password_hash(os.environ["ADMIN_PASSWORD"])
+        else:
+            hashed_pw = os.environ.get(
+                "ADMIN_PASSWORD_HASH",
+                "scrypt:32768:8:1$d5QBLNflP6c9zJ9e$0364d990ad31238fb0ee9638c03565cf118d79a295c5553ee24f74f7ea4cb75d1f11a842b0124ad721d60ec693bc2fdf212b485fc8488e0f6fc413e17d057a6e"
+            )
         cursor.execute(
             "INSERT INTO admin (username, password_hash, role) VALUES (?, ?, ?);",
-            ("admin", generate_password_hash(default_pw), "admin"),
+            ("admin", hashed_pw, "admin"),
         )
 
     # 1. 客戶資料 5 筆

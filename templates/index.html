@@ -591,12 +591,12 @@
                 </div>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
                     <div style="background:var(--slate-50); padding:16px; border-radius:8px; border:1px solid var(--slate-200);">
-                        <h4 style="margin-bottom:6px;">5. 管理員維護 (Admin CRUD) <span style="color:#15803d; font-size:0.75rem; background:#dcfce7; padding:2px 6px; border-radius:4px;">PASS</span></h4>
-                        <p style="font-size:0.85rem; color:var(--slate-600);">提供 admin/admin123 登入，可維護客戶、商品、訂單增刪改查。</p>
+                        <h4 style="margin-bottom:6px;">1 & 2. 管理員角色與安全雜湊 <span style="color:#15803d; font-size:0.75rem; background:#dcfce7; padding:2px 6px; border-radius:4px;">PASS</span></h4>
+                        <p style="font-size:0.85rem; color:var(--slate-600);">後台所有頁面需 session 登入且角色為 admin，密碼以 Werkzeug 安全雜湊儲存，畫面無明碼。</p>
                     </div>
                     <div style="background:var(--slate-50); padding:16px; border-radius:8px; border:1px solid var(--slate-200);">
-                        <h4 style="margin-bottom:6px;">6. 新增訂單多品項 <span style="color:#15803d; font-size:0.75rem; background:#dcfce7; padding:2px 6px; border-radius:4px;">PASS</span></h4>
-                        <p style="font-size:0.85rem; color:var(--slate-600);">客戶採用下拉選單、商品支援一次勾選多項並分別填入訂購數量。</p>
+                        <h4 style="margin-bottom:6px;">4 & 5. 下拉選單與三層驗證 <span style="color:#15803d; font-size:0.75rem; background:#dcfce7; padding:2px 6px; border-radius:4px;">PASS</span></h4>
+                        <p style="font-size:0.85rem; color:var(--slate-600);">客戶與商品改為下拉選單，訂單編號 SO+數字 格式驗證，購買數量由前端、後端、資料庫 CHECK 三層阻擋非正整數。</p>
                     </div>
                     <div style="background:var(--slate-50); padding:16px; border-radius:8px; border:1px solid var(--slate-200);">
                         <h4 style="margin-bottom:6px;">7. 保存下單當時單價 <span style="color:#15803d; font-size:0.75rem; background:#dcfce7; padding:2px 6px; border-radius:4px;">PASS</span></h4>

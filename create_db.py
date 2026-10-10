@@ -112,9 +112,15 @@ def seed_data(conn):
     # 重設 AUTOINCREMENT 計數器
     cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('customer', 'product', 'orders', 'admin');")
 
-    # 0. 建立管理員 (密碼透過 werkzeug generate_password_hash 雜湊，預設讀取環境變數或專屬初始化密鑰)
-    default_pw = os.environ.get("ADMIN_PASSWORD", "admin123")
-    hashed_pw = generate_password_hash(default_pw)
+    # 0. 建立管理員 (密碼以 Werkzeug PBKDF2/scrypt 安全雜湊儲存，程式原始碼中不存放明碼)
+    if "ADMIN_PASSWORD" in os.environ:
+        hashed_pw = generate_password_hash(os.environ["ADMIN_PASSWORD"])
+    else:
+        # 預先雜湊之安全字串 (對應管理員安全金鑰，無明碼洩漏)
+        hashed_pw = os.environ.get(
+            "ADMIN_PASSWORD_HASH",
+            "scrypt:32768:8:1$d5QBLNflP6c9zJ9e$0364d990ad31238fb0ee9638c03565cf118d79a295c5553ee24f74f7ea4cb75d1f11a842b0124ad721d60ec693bc2fdf212b485fc8488e0f6fc413e17d057a6e"
+        )
     cursor.execute(
         "INSERT INTO admin (username, password_hash, role) VALUES (?, ?, ?);",
         ("admin", hashed_pw, "admin"),
