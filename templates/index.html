@@ -317,6 +317,7 @@
                     </a>
                     {% if is_admin %}
                         <span class="pill pill-admin">👤 管理員：<strong>{{ session['admin'] }}</strong></span>
+                        <a href="/admin" class="btn btn-outline" style="background:#eef2ff; color:#4f46e5; border-color:#c7d2fe; font-weight:700;">📊 營運儀表板</a>
                         <a href="/admin/orders/new" class="btn btn-primary">➕ 新增訂單</a>
                         <a href="/logout" class="btn btn-outline">🚪 登出</a>
                     {% else %}

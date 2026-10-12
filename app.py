@@ -24,6 +24,29 @@ if hasattr(app, "json") and hasattr(app.json, "ensure_ascii"):
     app.json.ensure_ascii = False
 
 
+@app.template_filter("comma")
+def comma_filter(val):
+    """金額與數值千分位格式化"""
+    try:
+        if val is None:
+            return "0"
+        return f"{float(val):,.0f}"
+    except (ValueError, TypeError):
+        return val
+
+
+@app.template_filter("currency")
+def currency_filter(val):
+    """金額加上 NT$ 與千分位格式化"""
+    try:
+        if val is None:
+            return "NT$ 0"
+        return f"NT$ {float(val):,.0f}"
+    except (ValueError, TypeError):
+        return val
+
+
+
 @app.after_request
 def set_utf8_encoding(response):
     """確保所有 HTTP 回應標頭均明確指定 UTF-8，防止瀏覽器產生中文亂碼"""
@@ -165,6 +188,186 @@ def index():
         total_qty=total_qty,
         is_admin=True,
     )
+
+
+# ==========================================
+# 需求：後台營運儀表板 (/admin 與 /admin/dashboard)
+# 1. 上方四張 KPI 卡：累計營收、有效訂單數、平均客單價、客戶數 (排除已取消訂單)
+# 2. 每月營收趨勢：Chart.js 折線圖 (排除已取消訂單)
+# 3. 訂單狀態分布：Chart.js 環圈圖
+# 4. 熱銷商品 Top 5：商品名稱、售出數量、營收 (排除已取消訂單)
+# 5. 客戶消費排行 Top 5：客戶名稱、訂單數、消費金額 (排除已取消訂單)
+# 6. 金額千分位、Bootstrap 卡片排版、手機端單欄響應式顯示
+# ==========================================
+@app.route("/admin")
+@app.route("/admin/dashboard")
+@admin_required
+def admin_dashboard():
+    """營運儀表板：多維度營運指標與圖表分析 (全參數化查詢，嚴格排除 '已取消' 之訂單)"""
+    ensure_db()
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # ----------------------------------------------------
+    # 1. 上方四張 KPI 卡片 (狀態為 '已取消' 之訂單不列入計算)
+    # ----------------------------------------------------
+    cursor.execute("""
+    SELECT 
+        COUNT(DISTINCT o.order_id) AS valid_orders_count,
+        COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total_revenue,
+        COUNT(DISTINCT o.customer_id) AS valid_customers_count
+    FROM orders o
+    JOIN order_item oi ON o.order_id = oi.order_id
+    WHERE o.status != '已取消';
+    """)
+    kpi_row = dict(cursor.fetchone())
+    total_revenue = float(kpi_row["total_revenue"])
+    valid_orders_count = int(kpi_row["valid_orders_count"])
+    valid_customers_count = int(kpi_row["valid_customers_count"])
+    avg_order_value = (total_revenue / valid_orders_count) if valid_orders_count > 0 else 0.0
+
+    # 查詢建檔客戶總數
+    cursor.execute("SELECT COUNT(*) AS total_customers FROM customer;")
+    total_customers = cursor.fetchone()["total_customers"]
+
+    # 查詢訂單總筆數與已取消筆數 (供統計對比提示)
+    cursor.execute("SELECT COUNT(*) AS total_orders FROM orders;")
+    total_orders_count = cursor.fetchone()["total_orders"]
+    cursor.execute("SELECT COUNT(*) AS cancelled_count FROM orders WHERE status = '已取消';")
+    cancelled_orders_count = cursor.fetchone()["cancelled_count"]
+
+    kpi = {
+        "total_revenue": total_revenue,
+        "valid_orders_count": valid_orders_count,
+        "avg_order_value": avg_order_value,
+        "valid_customers_count": valid_customers_count,
+        "total_customers": total_customers,
+    }
+
+    # ----------------------------------------------------
+    # 2. 每月營收趨勢：折線圖 (Chart.js，排除 '已取消' 之訂單)
+    # ----------------------------------------------------
+    cursor.execute("""
+    SELECT 
+        substr(o.order_date, 1, 7) AS month,
+        COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS revenue,
+        COUNT(DISTINCT o.order_id) AS order_count
+    FROM orders o
+    JOIN order_item oi ON o.order_id = oi.order_id
+    WHERE o.status != '已取消'
+    GROUP BY substr(o.order_date, 1, 7)
+    ORDER BY month ASC;
+    """)
+    monthly_rows = [dict(r) for r in cursor.fetchall()]
+    monthly_dict = {r["month"]: float(r["revenue"]) for r in monthly_rows}
+
+    # 建立平滑連續的最近 6 個月份時間軸 (確保折線圖具有完整的趨勢時間軸感)
+    latest_month = max(monthly_dict.keys()) if monthly_dict else datetime.date.today().strftime("%Y-%m")
+    try:
+        y, m = map(int, latest_month.split("-"))
+    except ValueError:
+        today = datetime.date.today()
+        y, m = today.year, today.month
+
+    timeline_months = []
+    for i in range(5, -1, -1):
+        curr_m = m - i
+        curr_y = y
+        while curr_m <= 0:
+            curr_m += 12
+            curr_y -= 1
+        timeline_months.append(f"{curr_y:04d}-{curr_m:02d}")
+
+    for k in sorted(monthly_dict.keys()):
+        if k not in timeline_months:
+            timeline_months.append(k)
+    timeline_months = sorted(list(set(timeline_months)))
+
+    trend_labels = timeline_months
+    trend_revenues = [monthly_dict.get(m_str, 0.0) for m_str in timeline_months]
+    max_monthly_revenue = max(trend_revenues) if trend_revenues else 0.0
+
+    # ----------------------------------------------------
+    # 3. 訂單狀態分布：環圈圖 (Chart.js)
+    # ----------------------------------------------------
+    cursor.execute("""
+    SELECT status, COUNT(*) AS count
+    FROM orders
+    GROUP BY status
+    ORDER BY 
+        CASE status
+            WHEN '已完成' THEN 1
+            WHEN '已出貨' THEN 2
+            WHEN '處理中' THEN 3
+            WHEN '已取消' THEN 4
+            ELSE 5
+        END;
+    """)
+    status_distribution = [dict(r) for r in cursor.fetchall()]
+    status_labels = [r["status"] for r in status_distribution]
+    status_counts = [r["count"] for r in status_distribution]
+
+    # ----------------------------------------------------
+    # 4. 熱銷商品 Top 5 (商品名稱、售出數量、營收，排除 '已取消' 之訂單)
+    # ----------------------------------------------------
+    cursor.execute("""
+    SELECT 
+        p.product_id,
+        p.name AS product_name,
+        p.category,
+        p.price,
+        COALESCE(SUM(oi.quantity), 0) AS total_sold,
+        COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total_revenue
+    FROM product p
+    JOIN order_item oi ON p.product_id = oi.product_id
+    JOIN orders o ON oi.order_id = o.order_id
+    WHERE o.status != '已取消'
+    GROUP BY p.product_id, p.name
+    ORDER BY total_sold DESC, total_revenue DESC
+    LIMIT 5;
+    """)
+    top_products = [dict(r) for r in cursor.fetchall()]
+
+    # ----------------------------------------------------
+    # 5. 客戶消費排行 Top 5 (客戶名稱、訂單數、消費金額，排除 '已取消' 之訂單)
+    # ----------------------------------------------------
+    cursor.execute("""
+    SELECT 
+        c.customer_id,
+        c.name AS customer_name,
+        c.phone,
+        COUNT(DISTINCT o.order_id) AS order_count,
+        COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total_spent
+    FROM customer c
+    JOIN orders o ON c.customer_id = o.customer_id
+    JOIN order_item oi ON o.order_id = oi.order_id
+    WHERE o.status != '已取消'
+    GROUP BY c.customer_id, c.name
+    ORDER BY total_spent DESC, order_count DESC
+    LIMIT 5;
+    """)
+    top_customers = [dict(r) for r in cursor.fetchall()]
+
+    conn.close()
+
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    return render_template(
+        "admin_dashboard.html",
+        kpi=kpi,
+        total_orders_count=total_orders_count,
+        cancelled_orders_count=cancelled_orders_count,
+        trend_labels=trend_labels,
+        trend_revenues=trend_revenues,
+        max_monthly_revenue=max_monthly_revenue,
+        status_distribution=status_distribution,
+        status_labels=status_labels,
+        status_counts=status_counts,
+        top_products=top_products,
+        top_customers=top_customers,
+        current_time=current_time,
+    )
+
 
 
 # ==========================================

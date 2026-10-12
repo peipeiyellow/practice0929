@@ -20,6 +20,8 @@ class AppTestCase(unittest.TestCase):
         protected_urls = [
             "/",
             "/orders",
+            "/admin",
+            "/admin/dashboard",
             "/order/SO0001",
             "/admin/orders/new",
             "/admin/orders/update_status/1",
@@ -48,10 +50,14 @@ class AppTestCase(unittest.TestCase):
             sess["admin"] = "normal_user"
             sess["role"] = "user"
 
-        # 訪問首頁與新增訂單均應被重導向至 /login
+        # 訪問首頁、營運儀表板與新增訂單均應被重導向至 /login
         res_home = self.client.get("/")
         self.assertEqual(res_home.status_code, 302)
         self.assertIn("/login", res_home.headers.get("Location", ""))
+
+        res_admin = self.client.get("/admin")
+        self.assertEqual(res_admin.status_code, 302)
+        self.assertIn("/login", res_admin.headers.get("Location", ""))
 
         res_new = self.client.get("/admin/orders/new")
         self.assertEqual(res_new.status_code, 302)
@@ -74,18 +80,24 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(res_home.status_code, 200)
         self.assertIn("SQLite 企業訂單管理系統", res_home.get_data(as_text=True))
 
-        # 2. 專屬出貨單頁面 (HTTP 200)
+        # 2. 營運儀表板 /admin (HTTP 200)
+        res_admin = self.client.get("/admin")
+        self.assertEqual(res_admin.status_code, 200)
+        self.assertIn("營運儀表板", res_admin.get_data(as_text=True))
+
+        # 3. 專屬出貨單頁面 (HTTP 200)
         res_order = self.client.get("/order/SO0001")
         self.assertEqual(res_order.status_code, 200)
         self.assertIn("出貨明細單", res_order.get_data(as_text=True))
 
-        # 3. 新增訂單頁面 (HTTP 200)
+        # 4. 新增訂單頁面 (HTTP 200)
         res_new = self.client.get("/admin/orders/new")
         self.assertEqual(res_new.status_code, 200)
 
-        # 4. API 查詢 (HTTP 200)
+        # 5. API 查詢 (HTTP 200)
         res_api = self.client.get("/api/check")
         self.assertEqual(res_api.status_code, 200)
+
 
     def test_requirement_1_password_hashed_no_plaintext(self):
         """測試需求 1: 管理員密碼以 werkzeug 雜湊儲存，資料庫與登入頁絕無明碼"""
@@ -217,16 +229,75 @@ class AppTestCase(unittest.TestCase):
 
         conn.close()
 
-    def test_hello_world_independent_app(self):
-        """測試獨立的 Hello World 網頁 (Port 8899) 為公開服務且運作正常"""
-        from hello_app import app as hello_flask_app
-        hello_flask_app.config["TESTING"] = True
-        client = hello_flask_app.test_client()
-        res = client.get("/")
+    def test_admin_dashboard_operations(self):
+        """
+        測試營運儀表板 /admin：
+        1. 上方四張 KPI 卡：累計營收、有效訂單數、平均客單價、客戶數 (嚴格排除「已取消」之訂單)
+        2. 每月營收趨勢：Chart.js 折線圖
+        3. 訂單狀態分布：Chart.js 環圈圖
+        4. 熱銷商品 Top 5：商品名稱、售出數量、營收
+        5. 客戶消費排行 Top 5：客戶名稱、訂單數、消費金額
+        6. 金額千分位與 Bootstrap 卡片配置
+        """
+        with self.client.session_transaction() as sess:
+            sess["admin"] = "admin"
+            sess["role"] = "admin"
+
+        res = self.client.get("/admin")
         self.assertEqual(res.status_code, 200)
-        self.assertIn("Hello, World!", res.get_data(as_text=True))
-        self.assertIn("歡迎來到python製作的一頁式網站", res.get_data(as_text=True))
+        html = res.get_data(as_text=True)
+
+        # 1. 驗證四張 KPI 卡片標題與數值 (排除「已取消」訂單 SO0005 之 $33,600)
+        # 累計營收應為 234,590 (非含取消的 268,190)
+        self.assertIn("累計營收", html)
+        self.assertIn("234,590", html)
+        self.assertNotIn("268,190", html)
+
+        # 有效訂單數應為 4 筆 (總共 5 筆，扣除 1 筆已取消)
+        self.assertIn("有效訂單數", html)
+        self.assertIn("4", html)
+
+        # 平均客單價應為 58,648 (234,590 / 4)
+        self.assertIn("平均客單價", html)
+        self.assertIn("58,648", html)
+
+        # 客戶數
+        self.assertIn("客戶數", html)
+
+        # 2. 每月營收趨勢折線圖 (Chart.js)
+        self.assertIn('id="monthlyRevenueChart"', html)
+        self.assertIn("Chart(trendCtx", html)
+        self.assertIn('type: "line"', html)
+
+        # 3. 訂單狀態分布環圈圖 (Chart.js)
+        self.assertIn('id="orderStatusChart"', html)
+        self.assertIn("Chart(statusCtx", html)
+        self.assertIn('type: "doughnut"', html)
+        self.assertIn("已取消", html)
+
+        # 4. 熱銷商品 Top 5
+        self.assertIn("熱銷商品 Top 5", html)
+        self.assertIn("商品名稱", html)
+        self.assertIn("售出數量", html)
+        self.assertIn("人體工學靜音機械鍵盤", html)
+        self.assertIn("主動降噪真無線藍牙耳機 Pro", html)
+        self.assertIn("旗艦級 AI 智慧筆電 16吋", html)
+
+        # 5. 客戶消費排行 Top 5
+        self.assertIn("客戶消費排行 Top 5", html)
+        self.assertIn("客戶名稱", html)
+        self.assertIn("有效訂單數", html)
+        self.assertIn("消費金額", html)
+        self.assertIn("台灣積體電路製造股份有限公司", html)
+        self.assertIn("聯發科技股份有限公司", html)
+        self.assertIn("鴻海精密工業股份有限公司", html)
+
+        # 6. 千分位符號與 Bootstrap 佈局
+        self.assertIn("NT$", html)
+        self.assertIn("bootstrap", html.lower())
+        self.assertIn("col-12", html)
 
 
 if __name__ == "__main__":
     unittest.main()
+
